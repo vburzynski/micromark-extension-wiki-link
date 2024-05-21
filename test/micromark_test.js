@@ -1,5 +1,5 @@
 import assert from 'assert';
-import micromark from 'micromark/lib';
+import { micromark } from 'micromark';
 
 import { syntax, html } from '../src/index';
 
