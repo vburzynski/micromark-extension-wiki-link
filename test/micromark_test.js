@@ -1,45 +1,67 @@
 import assert from "assert";
-
 import micromark from "micromark/lib";
 
 import { syntax, html } from '..';
 
 describe('micromark-extension-wiki-link', () => {
-  it("parses a wiki link that has a matching permalink", () => {
-    let serialized = micromark('[[Wiki Link]]', {
-      extensions: [syntax()],
-      htmlExtensions: [html({ permalinks: ['wiki_link'] })]
+  describe('wiki links', () => {
+    it("parses a wiki link that has a matching permalink", () => {
+      let serialized = micromark('[[Wiki Link]]', {
+        extensions: [syntax()],
+        htmlExtensions: [html({ permalinks: ['wiki_link'] })]
+      });
+
+      assert.equal(serialized, '<p><a href="#/page/wiki_link" class="internal">Wiki Link</a></p>');
     });
 
-    assert.equal(serialized, '<p><a href="#/page/wiki_link" class="internal">Wiki Link</a></p>');
+    it("parses a wiki link that has no matching permalink", () => {
+      let serialized = micromark('[[Wiki Link]]', {
+        extensions: [syntax()],
+        htmlExtensions: [html()]
+      });
+
+      assert.equal(serialized, '<p><a href="#/page/wiki_link" class="internal new">Wiki Link</a></p>');
+    });
+  })
+
+  describe('aliases', () => {
+    it("handles wiki links with aliases", () => {
+      let serialized = micromark('[[Real Page:Page Alias]]', {
+        extensions: [syntax()],
+        htmlExtensions: [html()]
+      });
+
+      assert.equal(serialized, '<p><a href="#/page/real_page" class="internal new">Page Alias</a></p>');
+    });
+
+    it("handles wiki links with a custom alias divider", () => {
+      let serialized = micromark('[[Real Page||Page Alias]]', {
+        extensions: [syntax({ aliasDivider: "||" })],
+        htmlExtensions: [html()]
+      });
+
+      assert.equal(serialized, '<p><a href="#/page/real_page" class="internal new">Page Alias</a></p>');
+    });
   });
 
-  it("parses a wiki link that has no matching permalink", () => {
-    let serialized = micromark('[[Wiki Link]]', {
-      extensions: [syntax()],
-      htmlExtensions: [html()]
+  describe('file embeds and transclusions', () => {
+    it('handles embedded images with a matching permalink', () => {
+      const serialized = micromark('![[image.jpg]]', {
+        extensions: [syntax()],
+        htmlExtensions: [html({ permalinks: ['image.jpg'] })]
+      });
+
+      assert.equal(serialized, '<p><a href="#/page/image.jpg" class="internal">image.jpg</a></p>');
     });
 
-    assert.equal(serialized, '<p><a href="#/page/wiki_link" class="internal new">Wiki Link</a></p>');
-  });
+    it('handles embedded images with no matching permalink', () => {
+      const serialized = micromark('![[image.jpg]]', {
+        extensions: [syntax()],
+        htmlExtensions: [html()]
+      });
 
-
-  it("handles wiki links with aliases", () => {
-    let serialized = micromark('[[Real Page:Page Alias]]', {
-      extensions: [syntax()],
-      htmlExtensions: [html()]
+      assert.equal(serialized, '<p><a href="#/page/image.jpg" class="internal new">image.jpg</a></p>');
     });
-
-    assert.equal(serialized, '<p><a href="#/page/real_page" class="internal new">Page Alias</a></p>');
-  });
-
-  it("handles wiki links with a custom alias divider", () => {
-    let serialized = micromark('[[Real Page||Page Alias]]', {
-      extensions: [syntax({ aliasDivider: "||" })],
-      htmlExtensions: [html()]
-    });
-
-    assert.equal(serialized, '<p><a href="#/page/real_page" class="internal new">Page Alias</a></p>');
   });
 
   context("open wiki links", () => {
@@ -139,4 +161,4 @@ describe('micromark-extension-wiki-link', () => {
       assert.equal(serialized, '<p><a href="#/page/a_page" class="wiki_link">A Page</a></p>');
     });
   });
-})
+});

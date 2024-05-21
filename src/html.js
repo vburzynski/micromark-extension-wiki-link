@@ -34,7 +34,7 @@ function html (opts = {}) {
     const wikiLink = this.getData('wikiLinkStack').pop()
 
     const pagePermalinks = pageResolver(wikiLink.target)
-    let permalink = pagePermalinks.find(p => permalinks.indexOf(p) !== -1)
+    let permalink = pagePermalinks.find(pagePermalink => permalinks.indexOf(pagePermalink) !== -1)
     const exists = permalink !== undefined
     if (!exists) {
       permalink = pagePermalinks[0]
