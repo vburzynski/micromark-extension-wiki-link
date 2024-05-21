@@ -18,19 +18,20 @@
   },
   "repository": "https://github.com/landakram/micromark-extension-wiki-link",
   "license": "MIT",
-  "main": "dist/index.cjs.js",
-  "module": "dist/index.esm.js",
-  "browser": "dist/index.umd.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
   "directories": {
     "test": "test"
   },
   "scripts": {
     "build": "webpack",
     "lint": "npx eslint 'src/**/*.{ts,tsx,cjs,mjs,js,jsx}'",
-    "test": "npm run lint && mocha test/micromark_test.js",
-    "prettier": "npx prettier --write ./{src,test}"
+    "test": "npm run lint && mocha",
+    "prettier": "npx prettier --write ./{src,test}",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.6",
     "eslint": "^9.3.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-mocha": "^10.4.3",
@@ -40,7 +41,11 @@
     "ts-loader": "^9.5.1",
     "tsx": "^4.10.5",
     "typescript": "^5.4.5",
+    "typescript-eslint": "^8.0.0-alpha.14",
     "webpack": "^5.91.0",
     "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "micromark-util-types": "^2.0.0"
   }
 }

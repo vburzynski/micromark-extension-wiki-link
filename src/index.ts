@@ -1,3 +1,4 @@
+import type { Code, Effects, Extension, State, TokenizeContext } from 'micromark-util-types';
 import { html } from './html.js';
 
 const codes = {
@@ -15,16 +16,20 @@ const codes = {
   rightSquareBracket: 93, // `]`
 };
 
-function isLineEndingOrSpace(code) {
+function isLineEndingOrSpace(code: number) {
   return code < codes.nul || code === codes.space;
 }
 
-function isLineEnding(code) {
+function isLineEnding(code: number) {
   return code < codes.horizontalTab;
 }
 
-function wikiLink(opts = {}) {
-  const aliasDivider = opts.aliasDivider || ':';
+export interface SyntaxOptions {
+  aliasDivider?: string;
+}
+
+function wikiLink(opts: SyntaxOptions = {}): Extension {
+  const aliasDivider = opts.aliasDivider ?? ':';
 
   const aliasMarker = aliasDivider.charCodeAt(0);
   const aliasMarkerCount = aliasDivider.length;
@@ -34,25 +39,25 @@ function wikiLink(opts = {}) {
   const endMarker = codes.rightSquareBracket;
   const endMarkerCount = 2;
 
-  function tokenize(effects, ok, nok) {
-    var data;
-    var alias;
+  function tokenize(this: TokenizeContext, effects: Effects, ok: State, nok: State) {
+    let data = false;
+    let alias = false;
 
-    var aliasCursor = 0;
-    var startMarkerCursor = 0;
-    var endMarkerCursor = 0;
+    let aliasCursor = 0;
+    let startMarkerCursor = 0;
+    let endMarkerCursor = 0;
 
     return start;
 
-    function start(code) {
+    function start(code: Code): State | undefined {
       if (code === startMarker) {
         effects.enter('wikiLink');
         effects.enter('wikiLinkMarker');
 
         return consumeStart(code);
       } else if (code === embedStartMarker) {
-        effects.enter('wikiLink', { isType: 'embed' });
-        effects.enter('wikiLinkMarker', { isType: 'embed' });
+        effects.enter('wikiLink', { embed: true });
+        effects.enter('wikiLinkMarker', { embed: true });
 
         return consumeStart(code);
       } else {
@@ -60,7 +65,7 @@ function wikiLink(opts = {}) {
       }
     }
 
-    function consumeStart(code) {
+    function consumeStart(code: Code): State | undefined {
       if (startMarkerCursor === startMarkerCount) {
         effects.exit('wikiLinkMarker');
         return consumeData(code);
@@ -78,8 +83,8 @@ function wikiLink(opts = {}) {
       }
     }
 
-    function consumeData(code) {
-      if (isLineEnding(code) || code === codes.eof) {
+    function consumeData(code: Code): State | undefined {
+      if (!code || isLineEnding(code) || code === codes.eof) {
         return nok(code);
       }
 
@@ -88,7 +93,7 @@ function wikiLink(opts = {}) {
       return consumeTarget(code);
     }
 
-    function consumeTarget(code) {
+    function consumeTarget(code: Code): State | undefined {
       if (code === aliasMarker) {
         if (!data) return nok(code);
         effects.exit('wikiLinkTarget');
@@ -104,7 +109,7 @@ function wikiLink(opts = {}) {
         return consumeEnd(code);
       }
 
-      if (isLineEnding(code) || code === codes.eof) {
+      if (!code || isLineEnding(code) || code === codes.eof) {
         return nok(code);
       }
 
@@ -117,7 +122,7 @@ function wikiLink(opts = {}) {
       return consumeTarget;
     }
 
-    function consumeAliasMarker(code) {
+    function consumeAliasMarker(code: Code): State | undefined {
       if (aliasCursor === aliasMarkerCount) {
         effects.exit('wikiLinkAliasMarker');
         effects.enter('wikiLinkAlias');
@@ -134,7 +139,7 @@ function wikiLink(opts = {}) {
       return consumeAliasMarker;
     }
 
-    function consumeAlias(code) {
+    function consumeAlias(code: Code): State | undefined {
       if (code === endMarker) {
         if (!alias) return nok(code);
         effects.exit('wikiLinkAlias');
@@ -143,7 +148,7 @@ function wikiLink(opts = {}) {
         return consumeEnd(code);
       }
 
-      if (isLineEnding(code) || code === codes.eof) {
+      if (!code || isLineEnding(code) || code === codes.eof) {
         return nok(code);
       }
 
@@ -156,7 +161,7 @@ function wikiLink(opts = {}) {
       return consumeAlias;
     }
 
-    function consumeEnd(code) {
+    function consumeEnd(code: Code): State | undefined {
       if (endMarkerCursor === endMarkerCount) {
         effects.exit('wikiLinkMarker');
         effects.exit('wikiLink');
@@ -172,14 +177,14 @@ function wikiLink(opts = {}) {
 
       return consumeEnd;
     }
-  }
+  };
 
-  var wikiLinkConstruct = { tokenize: tokenize };
+  const wikiLinkConstruct = { tokenize: tokenize };
 
   return {
     text: {
-      [codes.leftSquareBracket]: wikiLinkConstruct,
-      [codes.exclamationMark]: wikiLinkConstruct,
+      [`${codes.leftSquareBracket}`]: wikiLinkConstruct,
+      [`${codes.exclamationMark}`]: wikiLinkConstruct,
     },
   };
 }

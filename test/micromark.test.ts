@@ -35,7 +35,7 @@ describe('micromark-extension-wiki-link', function () {
     });
 
     it('handles wiki links with a custom alias divider', function () {
-      let serialized = micromark('[[Real Page||Page Alias]]', {
+      let serialized = micromark('[[Real Page||Page Alias]]', 'ascii', {
         extensions: [syntax({ aliasDivider: '||' })],
         htmlExtensions: [html()],
       });
@@ -113,7 +113,7 @@ describe('micromark-extension-wiki-link', function () {
 
   context('configuration options', function () {
     it('uses pageResolver', function () {
-      let identity = (name) => [name];
+      let identity = (name: string) => [name];
 
       let serialized = micromark('[[A Page]]', {
         extensions: [syntax()],
@@ -142,7 +142,7 @@ describe('micromark-extension-wiki-link', function () {
     });
 
     it('uses hrefTemplate', function () {
-      let hrefTemplate = (permalink) => permalink;
+      let hrefTemplate = (permalink: string) => permalink;
       let serialized = micromark('[[A Page]]', {
         extensions: [syntax()],
         htmlExtensions: [
