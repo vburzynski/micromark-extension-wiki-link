@@ -16,7 +16,7 @@ declare module 'micromark-util-types' {
   }
 
   interface CompileData {
-    wikiLinkStack: Array<WikiLink>;
+    wikiLinkStack: WikiLink[];
   }
 
   interface Token {
@@ -33,13 +33,13 @@ export interface HtmlOptions {
 }
 
 function html(opts: HtmlOptions = {}): HtmlExtension {
-  const permalinks = opts.permalinks || [];
+  const permalinks = opts.permalinks ?? [];
   const defaultPageResolver = (name: string) => [name.replace(/ /g, '_').toLowerCase()];
-  const pageResolver = opts.pageResolver || defaultPageResolver;
-  const newClassName = opts.newClassName || 'new';
-  const wikiLinkClassName = opts.wikiLinkClassName || 'internal';
+  const pageResolver = opts.pageResolver ?? defaultPageResolver;
+  const newClassName = opts.newClassName ?? 'new';
+  const wikiLinkClassName = opts.wikiLinkClassName ?? 'internal';
   const defaultHrefTemplate = (permalink: string) => `#/page/${permalink}`;
-  const hrefTemplate = opts.hrefTemplate || defaultHrefTemplate;
+  const hrefTemplate = opts.hrefTemplate ?? defaultHrefTemplate;
 
   function enterWikiLink(this: CompileContext, _token: Token): undefined {
     let stack = this.getData('wikiLinkStack');
@@ -50,7 +50,7 @@ function html(opts: HtmlOptions = {}): HtmlExtension {
     });
   }
 
-  function top(stack: Array<WikiLink>) {
+  function top(stack: WikiLink[]) {
     return stack[stack.length - 1];
   }
 
@@ -85,7 +85,7 @@ function html(opts: HtmlOptions = {}): HtmlExtension {
       classNames += ' ' + newClassName;
     }
 
-    this.tag('<a href="' + hrefTemplate(permalink || '') + '" class="' + classNames + '">');
+    this.tag('<a href="' + hrefTemplate(permalink ?? '') + '" class="' + classNames + '">');
     this.raw(displayName);
     this.tag('</a>');
   }

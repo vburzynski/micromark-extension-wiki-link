@@ -9,9 +9,8 @@ export default tseslint.config(
   },
   eslint.configs.recommended,
   mochaPlugin.configs.flat.recommended,
-  ...tseslint.configs.recommended,
-  // ...tseslint.configs.recommendedTypeChecked,
-  // ...tseslint.configs.stylisticTypeChecked,
+  ...tseslint.configs.recommendedTypeChecked,
+  ...tseslint.configs.stylisticTypeChecked,
   {
     languageOptions: {
       parserOptions: {
