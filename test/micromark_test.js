@@ -1,7 +1,7 @@
 import assert from 'assert';
 import micromark from 'micromark/lib';
 
-import { syntax, html } from '..';
+import { syntax, html } from '../src/index';
 
 describe('micromark-extension-wiki-link', function () {
   describe('wiki links', function () {

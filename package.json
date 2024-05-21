@@ -27,27 +27,17 @@
   "scripts": {
     "build": "rollup -c",
     "lint": "npx eslint 'src/**/*.{ts,tsx,cjs,mjs,js,jsx}'",
-    "prepare": "npm run build",
-    "pretest": "npm run build",
-    "test": "npm run lint && mocha --require @babel/register test/micromark_test.js",
+    "test": "npm run lint && mocha test/micromark_test.js",
     "prettier": "npx prettier --write ./{src,test}"
   },
   "devDependencies": {
-    "@babel/core": "^7.12.3",
-    "@babel/plugin-transform-runtime": "^7.12.1",
-    "@babel/preset-env": "^7.12.1",
-    "@babel/register": "^7.12.1",
-    "@rollup/plugin-babel": "^5.2.1",
-    "@rollup/plugin-commonjs": "^15.1.0",
     "eslint": "^9.3.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-mocha": "^10.4.3",
     "micromark": "^2.10.1",
-    "mocha": "^8.2.0",
+    "mocha": "^10.4.0",
     "prettier": "^3.2.5",
-    "rollup": "^2.32.0"
-  },
-  "dependencies": {
-    "@babel/runtime": "^7.12.1"
+    "tsx": "^4.10.5",
+    "typescript": "^5.4.5"
   }
 }

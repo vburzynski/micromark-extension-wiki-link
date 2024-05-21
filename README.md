@@ -1,6 +1,7 @@
 # micromark-extension-wiki-link
 
-[![npm version](https://badge.fury.io/js/micromark-extension-wiki-link.svg)](https://badge.fury.io/js/micromark-extension-wiki-link) [![Build Status](https://travis-ci.org/landakram/micromark-extension-wiki-link.svg?branch=master)](https://travis-ci.org/landakram/micromark-extension-wiki-link)
+[![npm version](https://badge.fury.io/js/micromark-extension-wiki-link.svg)](https://badge.fury.io/js/micromark-extension-wiki-link)
+[![Build Status](https://travis-ci.org/landakram/micromark-extension-wiki-link.svg?branch=master)](https://travis-ci.org/landakram/micromark-extension-wiki-link)
 
 This [micromark](https://github.com/micromark/micromark) extension parses and renders `[[Wiki Links]]`.
 
