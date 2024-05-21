@@ -28,7 +28,7 @@ export interface SyntaxOptions {
   aliasDivider?: string;
 }
 
-function wikiLink(opts: SyntaxOptions = {}): Extension {
+function syntax(opts: SyntaxOptions = {}): Extension {
   const aliasDivider = opts.aliasDivider ?? ':';
 
   const aliasMarker = aliasDivider.charCodeAt(0);
@@ -189,4 +189,4 @@ function wikiLink(opts: SyntaxOptions = {}): Extension {
   };
 }
 
-export { wikiLink as syntax, html };
+export { syntax, html };

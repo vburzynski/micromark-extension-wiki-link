@@ -75,6 +75,7 @@ function html(opts: HtmlOptions = {}): HtmlExtension {
     if (!exists) {
       permalink = pagePermalinks[0];
     }
+
     let displayName = wikiLink!.target;
     if (wikiLink!.alias) {
       displayName = wikiLink!.alias;
