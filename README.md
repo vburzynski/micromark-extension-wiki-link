@@ -77,8 +77,3 @@ And will produce this HTML when rendered:
 ```
 <a class="internal new" href="#/page/real_page">Page Alias</a>
 ```
-
-
-
-
-
