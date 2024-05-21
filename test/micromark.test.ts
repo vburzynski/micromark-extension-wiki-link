@@ -1,5 +1,5 @@
-import assert from 'assert';
 import { micromark } from 'micromark';
+import { expect } from 'chai';
 
 import { syntax, html } from '../src/index';
 
@@ -15,13 +15,13 @@ describe('micromark-extension-wiki-link', function () {
     it('parses a wiki link that has a matching permalink', function () {
       let serialized = basicSerializer('[[Wiki Link]]', ['wiki_link']);
 
-      assert.equal(serialized, '<p><a href="#/page/wiki_link" class="internal">Wiki Link</a></p>');
+      expect(serialized).to.equal('<p><a href="#/page/wiki_link" class="internal">Wiki Link</a></p>');
     });
 
     it('parses a wiki link that has no matching permalink', function () {
       let serialized = basicSerializer('[[Wiki Link]]');
 
-      assert.equal(serialized, '<p><a href="#/page/wiki_link" class="internal new">Wiki Link</a></p>');
+      expect(serialized).to.equal('<p><a href="#/page/wiki_link" class="internal new">Wiki Link</a></p>');
     });
   });
 
@@ -29,7 +29,7 @@ describe('micromark-extension-wiki-link', function () {
     it('handles wiki links with aliases', function () {
       let serialized = basicSerializer('[[Real Page:Page Alias]]');
 
-      assert.equal(serialized, '<p><a href="#/page/real_page" class="internal new">Page Alias</a></p>');
+      expect(serialized).to.equal('<p><a href="#/page/real_page" class="internal new">Page Alias</a></p>');
     });
 
     it('handles wiki links with a custom alias divider', function () {
@@ -38,7 +38,7 @@ describe('micromark-extension-wiki-link', function () {
         htmlExtensions: [html()],
       });
 
-      assert.equal(serialized, '<p><a href="#/page/real_page" class="internal new">Page Alias</a></p>');
+      expect(serialized).to.equal('<p><a href="#/page/real_page" class="internal new">Page Alias</a></p>');
     });
   });
 
@@ -46,13 +46,13 @@ describe('micromark-extension-wiki-link', function () {
     it('handles embedded images with a matching permalink', function () {
       const serialized = basicSerializer('![[image.jpg]]', ['image.jpg']);
 
-      assert.equal(serialized, '<p><a href="#/page/image.jpg" class="internal">image.jpg</a></p>');
+      expect(serialized).to.equal('<p><a href="#/page/image.jpg" class="internal">image.jpg</a></p>');
     });
 
     it('handles embedded images with no matching permalink', function () {
       const serialized = basicSerializer('![[image.jpg]]');
 
-      assert.equal(serialized, '<p><a href="#/page/image.jpg" class="internal new">image.jpg</a></p>');
+      expect(serialized).to.equal('<p><a href="#/page/image.jpg" class="internal new">image.jpg</a></p>');
     });
   });
 
@@ -60,19 +60,19 @@ describe('micromark-extension-wiki-link', function () {
     it('handles open wiki links', function () {
       let serialized = basicSerializer('t[[\nt');
 
-      assert.equal(serialized, '<p>t[[\nt</p>');
+      expect(serialized).to.equal('<p>t[[\nt</p>');
     });
 
     it('handles open wiki links at end of file', function () {
       let serialized = basicSerializer('t [[');
 
-      assert.equal(serialized, '<p>t [[</p>');
+      expect(serialized).to.equal('<p>t [[</p>');
     });
 
     it('handles open wiki links with partial data', function () {
       let serialized = basicSerializer('t [[tt\nt');
 
-      assert.equal(serialized, '<p>t [[tt\nt</p>');
+      expect(serialized).to.equal('<p>t [[tt\nt</p>');
     });
 
     it('handles open wiki links with partial alias divider', function () {
@@ -81,13 +81,13 @@ describe('micromark-extension-wiki-link', function () {
         htmlExtensions: [html()],
       });
 
-      assert.equal(serialized, '<p>[[t|\nt</p>');
+      expect(serialized).to.equal('<p>[[t|\nt</p>');
     });
 
     it('handles open wiki links with partial alias', function () {
       let serialized = basicSerializer('[[t:\nt');
 
-      assert.equal(serialized, '<p>[[t:\nt</p>');
+      expect(serialized).to.equal('<p>[[t:\nt</p>');
     });
   });
 
@@ -105,7 +105,7 @@ describe('micromark-extension-wiki-link', function () {
         ],
       });
 
-      assert.equal(serialized, '<p><a href="#/page/A Page" class="internal">A Page</a></p>');
+      expect(serialized).to.equal('<p><a href="#/page/A Page" class="internal">A Page</a></p>');
     });
 
     it('uses newClassName', function () {
@@ -118,7 +118,7 @@ describe('micromark-extension-wiki-link', function () {
         ],
       });
 
-      assert.equal(serialized, '<p><a href="#/page/a_page" class="internal new_page">A Page</a></p>');
+      expect(serialized).to.equal('<p><a href="#/page/a_page" class="internal new_page">A Page</a></p>');
     });
 
     it('uses hrefTemplate', function () {
@@ -132,7 +132,7 @@ describe('micromark-extension-wiki-link', function () {
         ],
       });
 
-      assert.equal(serialized, '<p><a href="a_page" class="internal new">A Page</a></p>');
+      expect(serialized).to.equal('<p><a href="a_page" class="internal new">A Page</a></p>');
     });
 
     it('uses wikiLinkClassName', function () {
@@ -146,7 +146,7 @@ describe('micromark-extension-wiki-link', function () {
         ],
       });
 
-      assert.equal(serialized, '<p><a href="#/page/a_page" class="wiki_link">A Page</a></p>');
+      expect(serialized).to.equal('<p><a href="#/page/a_page" class="wiki_link">A Page</a></p>');
     });
   });
 });
