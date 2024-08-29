@@ -1,7 +1,11 @@
+import { describe, it } from 'mocha';
 import { micromark } from 'micromark';
 import { expect } from 'chai';
+import { stripIndent } from 'proper-tags';
+import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table'
 
-import { syntax, html } from '../src/index';
+import { html } from '../src/index';
+import { syntax } from '../src/syntax';
 
 function basicSerializer(markdown: string, permalink: Array<string> = []) {
   return micromark(markdown, {
@@ -56,7 +60,7 @@ describe('micromark-extension-wiki-link', function () {
     });
   });
 
-  context('open wiki links', function () {
+  describe('open wiki links', function () {
     it('handles open wiki links', function () {
       let serialized = basicSerializer('t[[\nt');
 
@@ -91,7 +95,7 @@ describe('micromark-extension-wiki-link', function () {
     });
   });
 
-  context('configuration options', function () {
+  describe('configuration options', function () {
     it('uses pageResolver', function () {
       let identity = (name: string) => [name];
 
@@ -149,4 +153,68 @@ describe('micromark-extension-wiki-link', function () {
       expect(serialized).to.equal('<p><a href="#/page/a_page" class="wiki_link">A Page</a></p>');
     });
   });
+
+  describe('compatibility with GFM Tables', function () {
+    function serialize(markdown: string) {
+      return micromark(markdown, {
+        extensions: [gfmTable(), syntax({ aliasDivider: '|' })],
+        htmlExtensions: [gfmTableHtml(), html()]
+      });
+    }
+
+    it('handles a basic wikilink', function () {
+      const serialized = serialize(stripIndent`
+        | header | header |
+        | --- | --- |
+        | [[wikilink]] | text |
+      `);
+
+      expect(serialized).to.equal(stripIndent`
+        <table>
+        <thead>
+        <tr>
+        <th>header</th>
+        <th>header</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+        <td><a href="#/page/wikilink" class="internal new">wikilink</a></td>
+        <td>text</td>
+        </tr>
+        </tbody>
+        </table>
+      `);
+    });
+
+    it('handles a wikilink with an Obsidian style alias', function () {
+      const md = stripIndent`
+        | header              | header |
+        | ------------------- | ------ |
+        | [[wikilink\\|alias]] | text   |
+      `
+      const serialized = serialize(md);
+
+      // console.log(md);
+      // console.log(serialized);
+      // FIXME: the \\ should be removed
+      // TODO: is there any way to see if we are inside a table context?
+      expect(serialized).to.equal(stripIndent`
+        <table>
+        <thead>
+        <tr>
+        <th>header</th>
+        <th>header</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+        <td><a href="#/page/wikilink\\" class="internal new">alias</a></td>
+        <td>text</td>
+        </tr>
+        </tbody>
+        </table>
+      `);
+    });
+  })
 });

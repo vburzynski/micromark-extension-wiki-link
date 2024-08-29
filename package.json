@@ -38,8 +38,10 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-mocha": "^10.4.3",
     "micromark": "^4.0.0",
+    "micromark-extension-gfm-table": "^2.0.0",
     "mocha": "^10.4.0",
     "prettier": "^3.2.5",
+    "proper-tags": "^2.0.2",
     "ts-loader": "^9.5.1",
     "tsx": "^4.10.5",
     "typescript": "^5.4.5",
@@ -48,6 +50,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "micromark-util-character": "^2.1.0",
     "micromark-util-types": "^2.0.0"
   }
 }
