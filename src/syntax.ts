@@ -1,19 +1,5 @@
 import type { Code, Effects, Extension, State, TokenizeContext } from 'micromark-util-types';
-
-const codes = {
-  carriageReturn: -5,
-  lineFeed: -4,
-  carriageReturnLineFeed: -3,
-  horizontalTab: -2,
-  virtualSpace: -1,
-  nul: 0,
-  eof: null,
-  space: 32,
-  exclamationMark: 33, // `!`
-  colon: 58, // `:`
-  leftSquareBracket: 91, // `[`
-  rightSquareBracket: 93, // `]`
-};
+import { codes } from 'micromark-util-symbol';
 
 function isLineEndingOrSpace(code: number) {
   return code < codes.nul || code === codes.space;
