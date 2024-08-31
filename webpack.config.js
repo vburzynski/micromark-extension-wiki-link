@@ -7,7 +7,7 @@ export default [
   // ESM Configuration
   {
     mode: 'production',
-    entry: './src/index.js',
+    entry: './src/index.ts',
     module: {
       rules: [
         {
@@ -32,7 +32,7 @@ export default [
   // CommonJS Configuration
   {
     mode: 'production',
-    entry: './src/index.js',
+    entry: './src/index.ts',
     module: {
       rules: [
         {
