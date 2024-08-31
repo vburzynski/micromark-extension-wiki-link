@@ -195,10 +195,6 @@ describe('micromark-extension-wiki-link', function () {
       `
       const serialized = serialize(md);
 
-      // console.log(md);
-      // console.log(serialized);
-      // FIXME: the \\ should be removed
-      // TODO: is there any way to see if we are inside a table context?
       expect(serialized).to.equal(stripIndent`
         <table>
         <thead>
@@ -209,7 +205,7 @@ describe('micromark-extension-wiki-link', function () {
         </thead>
         <tbody>
         <tr>
-        <td><a href="#/page/wikilink\\" class="internal new">alias</a></td>
+        <td><a href="#/page/wikilink" class="internal new">alias</a></td>
         <td>text</td>
         </tr>
         </tbody>
