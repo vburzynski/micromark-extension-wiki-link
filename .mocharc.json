@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/mocharc",
-	"require": "tsx",
+  "require": "tsx",
   "spec": ["test/**/*.test.ts"],
   "reporter": "spec",
   "timeout": 60000
