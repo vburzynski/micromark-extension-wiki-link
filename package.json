@@ -19,8 +19,8 @@
   "repository": "https://github.com/landakram/micromark-extension-wiki-link",
   "license": "MIT",
   "source": "src/index.ts",
-	"main": "dist/index.cjs",
-	"module": "dist/index.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     "development": "./src/index.js",
@@ -46,12 +46,9 @@
     "mocha": "^10.4.0",
     "prettier": "^3.2.5",
     "proper-tags": "^2.0.2",
-    "ts-loader": "^9.5.1",
     "tsx": "^4.10.5",
     "typescript": "^5.4.5",
-    "typescript-eslint": "^8.0.0-alpha.14",
-    "webpack": "^5.91.0",
-    "webpack-cli": "^5.1.4"
+    "typescript-eslint": "^8.0.0-alpha.14"
   },
   "dependencies": {
     "micromark-util-character": "^2.1.0",
