@@ -6,15 +6,6 @@ interface WikiLink {
 }
 
 declare module 'micromark-util-types' {
-  interface TokenTypeMap {
-    wikiLinkTarget: 'wikiLinkTarget'
-    wikiLinkAlias: 'wikiLinkAlias'
-    wikiLink: 'wikiLink',
-    wikiLinkMarker: 'wikiLinkMarker'
-    wikiLinkData: 'wikiLinkData'
-    wikiLinkAliasMarker: 'wikiLinkAliasMarker'
-  }
-
   interface CompileData {
     wikiLinkStack: WikiLink[];
   }

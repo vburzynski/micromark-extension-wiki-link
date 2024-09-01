@@ -11,6 +11,17 @@ import type {
 
 import { codes } from 'micromark-util-symbol';
 
+declare module 'micromark-util-types' {
+  interface TokenTypeMap {
+    wikiLinkTarget: 'wikiLinkTarget'
+    wikiLinkAlias: 'wikiLinkAlias'
+    wikiLink: 'wikiLink',
+    wikiLinkMarker: 'wikiLinkMarker'
+    wikiLinkData: 'wikiLinkData'
+    wikiLinkAliasMarker: 'wikiLinkAliasMarker'
+  }
+}
+
 /**
  * Matches a carriage return, line feed, carriage return line feed, virtual space, end of file, or space character
  * @returns

@@ -1,4 +1,4 @@
-import { html } from './html';
-import { syntax } from './syntax';
+import { html } from './html.js';
+import { syntax } from './syntax.js';
 
 export { syntax, html };

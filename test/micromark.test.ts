@@ -4,8 +4,8 @@ import { expect } from 'chai';
 import { stripIndent } from 'proper-tags';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table'
 
-import { html } from '../src/index';
-import { syntax } from '../src/syntax';
+import { html } from '../src/index.js';
+import { syntax } from '../src/syntax.js';
 
 function basicSerializer(markdown: string, permalink: Array<string> = []) {
   return micromark(markdown, {

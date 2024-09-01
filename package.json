@@ -18,14 +18,17 @@
   },
   "repository": "https://github.com/landakram/micromark-extension-wiki-link",
   "license": "MIT",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
+  "source": "src/index.ts",
+	"main": "dist/index.cjs",
+	"module": "dist/index.js",
   "types": "./dist/index.d.ts",
-  "directories": {
-    "test": "test"
+  "exports": {
+    "development": "./src/index.js",
+    "default": "./dist/index.js"
   },
   "scripts": {
-    "build": "webpack",
+    "build": "tsc --build --clean && tsc --build",
+    "prepack": "npm run build",
     "lint": "npx eslint 'src/**/*.{ts,tsx,cjs,mjs,js,jsx}'",
     "test": "mocha",
     "prettier": "npx prettier --write ./{src,test}",
