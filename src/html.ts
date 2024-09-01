@@ -1,4 +1,5 @@
 import { CompileContext, HtmlExtension, Token } from "micromark-util-types";
+import { HtmlOptions } from "./types.js";
 
 interface WikiLink {
   target: string;
@@ -13,14 +14,6 @@ declare module 'micromark-util-types' {
   interface Token {
     embed: boolean;
   }
-}
-
-export interface HtmlOptions {
-  permalinks?: string[];
-  pageResolver?: (name: string) => string[];
-  newClassName?: string;
-  wikiLinkClassName?: string;
-  hrefTemplate?: (permalink: string) => string;
 }
 
 function html(opts: HtmlOptions = {}): HtmlExtension {

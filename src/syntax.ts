@@ -10,6 +10,7 @@ import type {
 } from 'micromark-util-types';
 
 import { codes } from 'micromark-util-symbol';
+import { WikiLinkSyntaxOptions } from './types.js';
 
 declare module 'micromark-util-types' {
   interface TokenTypeMap {
@@ -74,10 +75,6 @@ const tokenizeEscapedPipeAliasMarker: Tokenizer = function (
  * A construct to tokenize the escaped version of a vertical bar used as an alias divider
  */
 const escapedVerticalBarAliasDivider: Construct = { tokenize: tokenizeEscapedPipeAliasMarker, partial: true };
-
-export interface WikiLinkSyntaxOptions {
-  aliasDivider?: string;
-}
 
 export function syntax(opts: WikiLinkSyntaxOptions = {}): Extension {
   const embedStartMarker = codes.exclamationMark;
