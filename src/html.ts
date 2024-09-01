@@ -61,7 +61,7 @@ function html(opts: HtmlOptions = {}): HtmlExtension {
     const wikiLink = this.getData('wikiLinkStack').pop();
 
     const pagePermalinks = pageResolver(wikiLink!.target);
-    let permalink = pagePermalinks.find((pagePermalink) => permalinks.indexOf(pagePermalink) !== -1);
+    let permalink = pagePermalinks.find((pagePermalink) => permalinks.includes(pagePermalink));
     const exists = permalink !== undefined;
     if (!exists) {
       permalink = pagePermalinks[0];
