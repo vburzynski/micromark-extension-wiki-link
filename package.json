@@ -35,20 +35,20 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/chai": "^4.3.16",
-    "@types/mocha": "^10.0.6",
+    "@types/chai": "^4.3.19",
+    "@types/mocha": "^10.0.7",
     "chai": "^5.1.1",
-    "eslint": "^9.3.0",
+    "eslint": "^9.9.1",
     "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-mocha": "^10.4.3",
+    "eslint-plugin-mocha": "^10.5.0",
     "micromark": "^4.0.0",
-    "micromark-extension-gfm-table": "^2.0.0",
-    "mocha": "^10.4.0",
-    "prettier": "^3.2.5",
+    "micromark-extension-gfm-table": "^2.1.0",
+    "mocha": "^10.7.3",
+    "prettier": "^3.3.3",
     "proper-tags": "^2.0.2",
-    "tsx": "^4.10.5",
-    "typescript": "^5.4.5",
-    "typescript-eslint": "^8.0.0-alpha.14"
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.3.0"
   },
   "dependencies": {
     "micromark-util-character": "^2.1.0",
