@@ -1,6 +1,6 @@
 import { describe, it } from 'mocha';
-import { micromark } from 'micromark';
 import { expect } from 'chai';
+import { micromark } from 'micromark';
 import { stripIndent } from 'proper-tags';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table'
 
