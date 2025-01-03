@@ -16,10 +16,10 @@ import { markdownLineEnding } from 'micromark-util-character';
 declare module 'micromark-util-types' {
   interface TokenTypeMap {
     wikiLink: 'wikiLink', // encloses the entire wikilink
-    wikiLinkMarker: 'wikiLinkMarker' // encloses the opening or closing markers
-    wikiLinkTarget: 'wikiLinkTarget' // encloses the first target value
-    wikiLinkAnchorDivider: 'wikiLinkAnchorDivider',
-    wikiLinkAnchor: 'wikiLinkAnchor',
+    wikiLinkFence: 'wikiLinkFence' // encloses the opening or closing fences
+    wikiLinkTitle: 'wikiLinkTitle' // encloses the title value
+    wikiLinkAnchor: 'wikiLinkAnchor', // encloses the anchor marker (#)
+    wikiLinkHeading: 'wikiLinkHeading', // encloses the heading value which succeeds an anchor marker
     wikiLinkAliasMarker: 'wikiLinkAliasMarker' // the alias marker that might appear after the target
     wikiLinkAlias: 'wikiLinkAlias' // the alias value (appears after the alias marker)
   }
@@ -50,7 +50,7 @@ const tokenizeEscapedPipeAliasMarker: Tokenizer = function (
 
   function start(code: Code) {
     if (code === codes.backslash) {
-      effects.exit('wikiLinkTarget');
+      effects.exit('wikiLinkTitle');
       effects.enter('wikiLinkAliasMarker');
       effects.consume(code);
       return consumeAliasDivider;
@@ -117,7 +117,7 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
     function startWikiLink(code: Code) {
       // start the wiki link and first fence/marker
       effects.enter('wikiLink');
-      effects.enter('wikiLinkMarker');
+      effects.enter('wikiLinkFence');
 
       return openingFence(code);
     }
@@ -132,7 +132,7 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
       // when the code matches the start of an embed
       if (code === embedModifier) {
         effects.enter('wikiLink', { embed: true });
-        effects.enter('wikiLinkMarker', { embed: true });
+        effects.enter('wikiLinkFence', { embed: true });
         effects.consume(code);
 
         return openingFence;
@@ -170,13 +170,13 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
      * ```
      */
     function afterOpeningFence(code: Code): State | undefined {
-      effects.exit('wikiLinkMarker');
+      effects.exit('wikiLinkFence');
 
       if (code === codes.numberSign) {
-        return beforeAnchor(code)
+        return anchor(code)
       }
 
-      return beforeTarget(code);
+      return beforeTitle(code);
     }
 
     /**
@@ -185,14 +185,14 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
      * >     ^
      * ```
      */
-    function beforeTarget(code: Code): State | undefined {
+    function beforeTitle(code: Code): State | undefined {
       if (markdownLineEnding(code) || isEndOfFile(code)) {
         return nok(code);
       }
 
-      effects.enter('wikiLinkTarget');
+      effects.enter('wikiLinkTitle');
 
-      return target(code);
+      return title(code);
     }
 
     /**
@@ -201,26 +201,26 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
      * >     ^^^^^^
      * ```
      */
-    function target(code: Code): State | undefined {
+    function title(code: Code): State | undefined {
       if (code === codes.numberSign) {
-        effects.exit('wikiLinkTarget');
-        return beforeAnchor(code)
+        effects.exit('wikiLinkTitle');
+        return anchor(code)
       }
 
       // when code matches the first code of the alias divider
       if (atAliasDivider(code)) {
-        effects.exit('wikiLinkTarget');
+        effects.exit('wikiLinkTitle');
         return beforeAliasDivider(code);
       }
 
       // when using a vertical bar as an alias divider, the wikilinks inside of GFM tables need to escape the vertical bar
       if (config.aliasDivider === '|' && code === codes.backslash) {
-        return effects.attempt(escapedVerticalBarAliasDivider, betweenTargetAndAliasDivider, target)(code);
+        return effects.attempt(escapedVerticalBarAliasDivider, betweenTitleAndAliasDivider, title)(code);
       }
 
       // when the current code matches the first code of the closing fence
       if (atClosingFence(code)) {
-        effects.exit('wikiLinkTarget');
+        effects.exit('wikiLinkTitle');
         return beforeClosingFence(code);
       }
 
@@ -236,11 +236,11 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
 
       effects.consume(code);
 
-      return target;
+      return title;
     }
 
-    function betweenTargetAndAliasDivider(code: Code): State | undefined {
-      effects.exit('wikiLinkTarget');
+    function betweenTitleAndAliasDivider(code: Code): State | undefined {
+      effects.exit('wikiLinkTitle');
       return beforeAliasDivider(code);
     }
 
@@ -250,33 +250,33 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
      * >           ^
      * ```
      */
-    function beforeAnchor(code: Code): State | undefined {
+    function anchor(code: Code): State | undefined {
       if (code === codes.numberSign) {
-        effects.enter('wikiLinkAnchorDivider');
-        effects.consume(code);
-        effects.exit('wikiLinkAnchorDivider');
         effects.enter('wikiLinkAnchor');
-        return anchor;
+        effects.consume(code);
+        effects.exit('wikiLinkAnchor');
+        effects.enter('wikiLinkHeading');
+        return heading;
       }
 
       return nok(code);
     }
 
-    function anchor(code: Code): State | undefined {
+    function heading(code: Code): State | undefined {
       // exit when code matches the first code of the alias divider
       if (atAliasDivider(code)) {
-        effects.exit('wikiLinkAnchor');
+        effects.exit('wikiLinkHeading');
         return beforeAliasDivider(code);
       }
 
       // when using a vertical bar as an alias divider, the wikilinks inside of GFM tables need to escape the vertical bar
       if (config.aliasDivider === '|' && code === codes.backslash) {
-        return effects.attempt(escapedVerticalBarAliasDivider, betweenAnchorAndAliasDivider, anchor)(code);
+        return effects.attempt(escapedVerticalBarAliasDivider, betweenHeadingAndAliasDivider, heading)(code);
       }
 
       // when the current code matches the first code of the closing fence
       if (atClosingFence(code)) {
-        effects.exit('wikiLinkAnchor');
+        effects.exit('wikiLinkHeading');
         return beforeClosingFence(code);
       }
 
@@ -292,11 +292,11 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
 
       effects.consume(code);
 
-      return anchor;
+      return heading;
     }
 
-    function betweenAnchorAndAliasDivider(code: Code): State | undefined {
-      effects.exit('wikiLinkAnchor');
+    function betweenHeadingAndAliasDivider(code: Code): State | undefined {
+      effects.exit('wikiLinkHeading');
       return beforeAliasDivider(code);
     }
 
@@ -407,7 +407,7 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
     function beforeClosingFence(code: Code): State | undefined {
       // ensure we have at least a target at this point, otherwise the grammar is invalid
       if (containsTarget) {
-        effects.enter('wikiLinkMarker');
+        effects.enter('wikiLinkFence');
         return closingFence(code);
       }
 
@@ -446,7 +446,7 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
      */
     function afterClosingFence(code: Code): State | undefined {
       // the syntax is valid and complete
-      effects.exit('wikiLinkMarker');
+      effects.exit('wikiLinkFence');
       effects.exit('wikiLink');
       return ok(code);
     }

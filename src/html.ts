@@ -113,8 +113,8 @@ function internalLinkHtml(opts: WikiLinkHtmlOptions = {}): HtmlExtension {
       wikiLink: enterWikiLink,
     },
     exit: {
-      wikiLinkTarget: exitWikiLinkTarget,
-      wikiLinkAnchor: exitWikiLinkAnchor,
+      wikiLinkTitle: exitWikiLinkTarget,
+      wikiLinkHeading: exitWikiLinkAnchor,
       wikiLinkAlias: exitWikiLinkAlias,
       wikiLink: exitWikiLink,
     },
