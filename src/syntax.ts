@@ -11,15 +11,16 @@ import type {
 
 import { codes } from 'micromark-util-symbol';
 import { WikiLinkSyntaxOptions } from './types.js';
+import { asciiAlpha, markdownLineEnding, markdownSpace } from 'micromark-util-character';
 
 declare module 'micromark-util-types' {
   interface TokenTypeMap {
-    wikiLinkTarget: 'wikiLinkTarget'
-    wikiLinkAlias: 'wikiLinkAlias'
     wikiLink: 'wikiLink',
     wikiLinkMarker: 'wikiLinkMarker'
     wikiLinkData: 'wikiLinkData'
+    wikiLinkTarget: 'wikiLinkTarget'
     wikiLinkAliasMarker: 'wikiLinkAliasMarker'
+    wikiLinkAlias: 'wikiLinkAlias'
   }
 }
 
@@ -31,16 +32,6 @@ function isLineEndingTabOrSpace(code: Code) {
   return code && (code < codes.nul || code === codes.space);
 }
 
-/**
- * Matches a carriageReturnLineFeed, carriageReturn, or lineFeed
- */
-function isLineEnding(code: Code) {
-  return code && code < codes.horizontalTab;
-}
-
-/**
- * Matches the end of a file
- */
 function isEndOfFile(code: number): boolean {
   return code === codes.eof;
 }
@@ -78,17 +69,18 @@ const escapedVerticalBarAliasDivider: Construct = { tokenize: tokenizeEscapedPip
 
 export function syntax(opts: WikiLinkSyntaxOptions = {}): Extension {
   const embedStartMarker = codes.exclamationMark;
-  const startMarker = '[[';
+  const linkOpenMarker = '[[';
   const aliasDivider = opts.aliasDivider ?? ':';
-  const endMarker = ']]';
+  const linkCloseMarker = ']]';
 
   // when using a vertical bar as an alias divider, the wikilinks inside of GFM tables need to escape the vertical bar
   const employMarkdownTableFix = opts.aliasDivider === '|';
 
   function tokenize(this: TokenizeContext, effects: Effects, ok: State, nok: State) {
+    const self = this;
+
     let data = false;
     let alias = false;
-
     let aliasCursor = 0;
     let startMarkerCursor = 0;
     let endMarkerCursor = 0;
@@ -96,41 +88,50 @@ export function syntax(opts: WikiLinkSyntaxOptions = {}): Extension {
     return start;
 
     function start(code: Code): State | undefined {
-      // when the code matches the start marker
-      const nextStartMarkerCode = startMarker.charCodeAt(startMarkerCursor);
-      if (code === nextStartMarkerCode) {
-        effects.enter('wikiLink');
-        effects.enter('wikiLinkMarker');
-        return consumeStart(code);
-      }
+      const firstCodeForLinkOpenMarker = linkOpenMarker.charCodeAt(0);
 
+      // when the code matches the start marker
+      if (code === firstCodeForLinkOpenMarker) {
+        return startWikiLink(code);
+      }
       // when the code matches the start embed marker
       if (code === embedStartMarker) {
-        effects.enter('wikiLink', { embed: true });
-        effects.enter('wikiLinkMarker', { embed: true });
-        return consumeStart(code);
+        return startEmbed(code);
       }
 
       return nok(code);
     }
 
+    function startWikiLink(code: Code) {
+      effects.enter('wikiLink');
+      effects.enter('wikiLinkMarker');
+
+      return consumeStart(code);
+    }
+
+    function startEmbed(code: Code) {
+      // when the code matches the start of an embed
+      if (code === embedStartMarker) {
+        effects.enter('wikiLink', { embed: true });
+        effects.enter('wikiLinkMarker', { embed: true });
+        effects.consume(code);
+
+        return consumeStart;
+      }
+      return nok(code);
+    }
+
     function consumeStart(code: Code): State | undefined {
       // when the code is the first character after the end of the starting marker
-      if (startMarkerCursor === startMarker.length) {
+      if (startMarkerCursor === linkOpenMarker.length) {
         effects.exit('wikiLinkMarker');
         return consumeData(code);
       }
 
       // when the code matches the starting marker
-      const nextStartMarkerCode = startMarker.charCodeAt(startMarkerCursor);
+      const nextStartMarkerCode = linkOpenMarker.charCodeAt(startMarkerCursor);
       if (code === nextStartMarkerCode) {
         startMarkerCursor++;
-        effects.consume(code);
-        return consumeStart;
-      }
-
-      // when the code matches the start of an embed
-      if (code === embedStartMarker) {
         effects.consume(code);
         return consumeStart;
       }
@@ -139,7 +140,7 @@ export function syntax(opts: WikiLinkSyntaxOptions = {}): Extension {
     }
 
     function consumeData(code: Code): State | undefined {
-      if (!code || isLineEnding(code) || isEndOfFile(code)) {
+      if (!code || markdownLineEnding(code) || isEndOfFile(code)) {
         return nok(code);
       }
 
@@ -165,7 +166,7 @@ export function syntax(opts: WikiLinkSyntaxOptions = {}): Extension {
       }
 
       // when the code matches the end marker
-      const nextEndMarkerCode = endMarker.charCodeAt(endMarkerCursor);
+      const nextEndMarkerCode = linkCloseMarker.charCodeAt(endMarkerCursor);
       if (code === nextEndMarkerCode) {
         // when there is no title component inside the wikilink data, this is invalid syntax
         if (!data) return nok(code);
@@ -175,7 +176,7 @@ export function syntax(opts: WikiLinkSyntaxOptions = {}): Extension {
         return consumeEnd(code);
       }
 
-      if (!code || isLineEnding(code) || isEndOfFile(code)) {
+      if (!code || markdownLineEnding(code) || isEndOfFile(code)) {
         return nok(code);
       }
 
@@ -211,7 +212,7 @@ export function syntax(opts: WikiLinkSyntaxOptions = {}): Extension {
 
     function consumeAlias(code: Code): State | undefined {
       // when the code matches the end marker
-      const nextEndMarkerCode = endMarker.charCodeAt(endMarkerCursor);
+      const nextEndMarkerCode = linkCloseMarker.charCodeAt(endMarkerCursor);
       if (code === nextEndMarkerCode) {
         // when we reach the end marker without seeing an alias, abort
         if (!alias) return nok(code);
@@ -221,7 +222,7 @@ export function syntax(opts: WikiLinkSyntaxOptions = {}): Extension {
         return consumeEnd(code);
       }
 
-      if (!code || isLineEnding(code) || isEndOfFile(code)) {
+      if (!code || markdownLineEnding(code) || isEndOfFile(code)) {
         return nok(code);
       }
 
@@ -236,15 +237,16 @@ export function syntax(opts: WikiLinkSyntaxOptions = {}): Extension {
     }
 
     function consumeEnd(code: Code): State | undefined {
+      debugger
       // the syntax is valid and complete after the entire length of the end marker is matched
-      if (endMarkerCursor === endMarker.length) {
+      if (endMarkerCursor === linkCloseMarker.length) {
         effects.exit('wikiLinkMarker');
         effects.exit('wikiLink');
         return ok(code);
       }
 
       // when the code matches th next character in the end marker
-      const nextEndMarkerCode = endMarker.charCodeAt(endMarkerCursor);
+      const nextEndMarkerCode = linkCloseMarker.charCodeAt(endMarkerCursor);
       if (code !== nextEndMarkerCode) {
         return nok(code);
       }
@@ -257,12 +259,16 @@ export function syntax(opts: WikiLinkSyntaxOptions = {}): Extension {
   }
 
   const wikiLinkConstruct: Construct = {
+    name: 'wikilink',
     tokenize: tokenize,
+    concrete: true,
   };
 
   return {
     text: {
+      // internal links start with a square bracket
       [codes.leftSquareBracket]: wikiLinkConstruct,
+      // embed links start with an exclamation mark
       [codes.exclamationMark]: wikiLinkConstruct,
     } as ConstructRecord,
   };
