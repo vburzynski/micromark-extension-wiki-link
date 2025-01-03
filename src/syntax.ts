@@ -10,14 +10,14 @@ import type {
 } from 'micromark-util-types';
 
 import { codes } from 'micromark-util-symbol';
-import { WikiLinkSyntaxOptions } from './types.js';
-import { asciiAlpha, markdownLineEnding, markdownSpace } from 'micromark-util-character';
+import { WikiLinkConfig, WikiLinkSyntaxOptions } from './types.js';
+import { markdownLineEnding } from 'micromark-util-character';
 
 declare module 'micromark-util-types' {
   interface TokenTypeMap {
     wikiLink: 'wikiLink', // encloses the entire wikilink
     wikiLinkMarker: 'wikiLinkMarker' // encloses the opening or closing markers
-    wikiLinkData: 'wikiLinkData'
+    wikiLinkData: 'wikiLinkData' // encloses the target and optional divider/alias combo
     wikiLinkTarget: 'wikiLinkTarget' // encloses the first target value
     wikiLinkAliasMarker: 'wikiLinkAliasMarker' // the alias marker that might appear after the target
     wikiLinkAlias: 'wikiLinkAlias' // the alias value (appears after the alias marker)
@@ -67,35 +67,44 @@ const tokenizeEscapedPipeAliasMarker: Tokenizer = function (
  */
 const escapedVerticalBarAliasDivider: Construct = { tokenize: tokenizeEscapedPipeAliasMarker, partial: true };
 
-export function syntax(opts: WikiLinkSyntaxOptions = {}): Extension {
-  const embedMarker = codes.exclamationMark;
-  const openMarker = '[[';
-  const aliasDivider = opts.aliasDivider ?? ':';
-  const closeMarker = ']]';
+const defaultConfig: WikiLinkConfig = {
+  aliasDivider: ':',
+  openingFence: '[[',
+  closingFence: ']]',
+}
+
+export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extension {
+  const embedModifier = codes.exclamationMark;
+  const config: WikiLinkConfig = { ...defaultConfig, ...options }
 
   // when using a vertical bar as an alias divider, the wikilinks inside of GFM tables need to escape the vertical bar
-  const employMarkdownTableFix = opts.aliasDivider === '|';
+  const employMarkdownTableFix = config.aliasDivider === '|';
 
   function tokenize(this: TokenizeContext, effects: Effects, ok: State, nok: State) {
     const self = this;
 
     let containsTarget = false;
-    let alias = false;
-    let aliasCursor = 0;
-    let openMarkerSize = 0;
-    let endMarkerCursor = 0;
+    let containsAlias = false;
+
+    let openingMarkerSize = 0;
+    let closingMarkerSize = 0;
+    let aliasSize = 0;
 
     return start;
 
+    /**
+     * Determine if we're starting an internal link (wiki link) or embed
+     */
     function start(code: Code): State | undefined {
-      const firstCodeForLinkOpenMarker = openMarker.charCodeAt(0);
 
-      // when the code matches the start marker
+      // when the first code matches the first code of the opening fence
+      const firstCodeForLinkOpenMarker = config.openingFence.charCodeAt(0);
       if (code === firstCodeForLinkOpenMarker) {
         return startWikiLink(code);
       }
-      // when the code matches the start embed marker
-      if (code === embedMarker) {
+
+      // when the first code matches the start embed modifier
+      if (code === embedModifier) {
         return startEmbed(code);
       }
 
@@ -111,7 +120,7 @@ export function syntax(opts: WikiLinkSyntaxOptions = {}): Extension {
 
     function startEmbed(code: Code) {
       // when the code matches the start of an embed
-      if (code === embedMarker) {
+      if (code === embedModifier) {
         effects.enter('wikiLink', { embed: true });
         effects.enter('wikiLinkMarker', { embed: true });
         effects.consume(code);
@@ -122,57 +131,67 @@ export function syntax(opts: WikiLinkSyntaxOptions = {}): Extension {
     }
 
     function openingMarker(code: Code): State | undefined {
-      // when the code is the first character after the end of the starting marker
-      if (openMarkerSize === openMarker.length) {
+      // when we've reached the first code after the end of the opening fence
+      if (openingMarkerSize === config.openingFence.length) {
         return afterOpenMarker(code);
       }
 
-      // when the code matches the starting marker
-      const nextStartMarkerCode = openMarker.charCodeAt(openMarkerSize);
+      // when the current code matches the next code position in the opening fence
+      const nextStartMarkerCode = config.openingFence.charCodeAt(openingMarkerSize);
       if (code === nextStartMarkerCode) {
         effects.consume(code);
-        openMarkerSize++;
-
+        openingMarkerSize++;
         return openingMarker;
       }
 
       return nok(code);
     }
 
+    /**
+     * End the opening fence and start the data
+     */
     function afterOpenMarker(code: Code): State | undefined {
       effects.exit('wikiLinkMarker');
+      effects.enter('wikiLinkData');
 
-      return consumeData(code);
+      return beforeTarget(code);
     }
 
-    function consumeData(code: Code): State | undefined {
+    /**
+     * At the start of a target value
+     */
+    function beforeTarget(code: Code): State | undefined {
+
       if (markdownLineEnding(code) || isEndOfFile(code)) {
         return nok(code);
       }
 
-      effects.enter('wikiLinkData');
       effects.enter('wikiLinkTarget');
-      return consumeTarget(code);
+
+      return target(code);
     }
 
-    function consumeTarget(code: Code): State | undefined {
+    function target(code: Code): State | undefined {
       // when using the backslash as an alias divider, we have to also check for the escaped version
       if (employMarkdownTableFix && code === codes.backslash) {
-        return effects.attempt(escapedVerticalBarAliasDivider, consumeAliasMarker, consumeTarget)(code);
+        return effects.attempt(escapedVerticalBarAliasDivider, aliasDivider, target)(code);
       }
 
-      // when the code matches the alias marker
-      const nextAliasMarkerCode = aliasDivider.charCodeAt(aliasCursor);
-      if (code === nextAliasMarkerCode) {
+      // when code matches the first code of the alias divider
+      const firstAliasMarkerCode = config.aliasDivider.charCodeAt(0);
+      if (code === firstAliasMarkerCode) {
+        effects.exit('wikiLinkTarget');
         return beforeAliasMarker(code);
       }
 
-      // when the code matches the end marker
-      const nextEndMarkerCode = closeMarker.charCodeAt(endMarkerCursor);
-      if (code === nextEndMarkerCode) {
-        return beforeCloseMarker(code);
+      // when the current code matches the first code of the closing fence
+      const firstClosingFenceCode = config.closingFence.charCodeAt(closingMarkerSize);
+      if (code === firstClosingFenceCode) {
+        effects.exit('wikiLinkTarget');
+        return beforeClosingFence(code);
       }
 
+      // when we reach the end of a line (or end of file) without closing the link, this is not valid syntax
       if (markdownLineEnding(code) || isEndOfFile(code)) {
         return nok(code);
       }
@@ -184,96 +203,112 @@ export function syntax(opts: WikiLinkSyntaxOptions = {}): Extension {
 
       effects.consume(code);
 
-      return consumeTarget;
+      return target;
     }
 
     function beforeAliasMarker(code: Code): State | undefined {
       if (containsTarget) {
-        effects.exit('wikiLinkTarget');
         effects.enter('wikiLinkAliasMarker');
-        return consumeAliasMarker(code);
+        return aliasDivider(code);
       }
 
       return nok(code);
     }
 
-    function beforeCloseMarker(code: Code): State | undefined {
-      if (containsTarget) {
-        effects.exit('wikiLinkTarget');
-        effects.exit('wikiLinkData');
-        effects.enter('wikiLinkMarker');
+    function aliasDivider(code: Code): State | undefined {
 
-        return consumeEnd(code);
-      }
-
-      return nok(code);
-    }
-
-    function consumeAliasMarker(code: Code): State | undefined {
-      // when the cursor is past the length of the alias divider, move on to consuming the alias
-      if (aliasCursor === aliasDivider.length) {
+      // when the cursor is past the length of the alias divider, move on to consuming the alias value
+      if (aliasSize === config.aliasDivider.length) {
         effects.exit('wikiLinkAliasMarker');
-        effects.enter('wikiLinkAlias');
-        return consumeAlias(code);
+        return beforeAlias(code);
       }
 
-      // if the code does not match the alias divider, the syntax does not match the grammar
-      const nextAliasMarkerCode = aliasDivider.charCodeAt(aliasCursor);
+      // WHEN the code does not match the next code in the alias divider, THEN the syntax does not match the grammar
+      const nextAliasMarkerCode = config.aliasDivider.charCodeAt(aliasSize);
       if (code !== nextAliasMarkerCode) {
         return nok(code);
       }
 
       effects.consume(code);
-      aliasCursor++;
+      aliasSize++;
 
-      return consumeAliasMarker;
+      return aliasDivider;
     }
 
-    function consumeAlias(code: Code): State | undefined {
-      // when the code matches the end marker
-      const nextEndMarkerCode = closeMarker.charCodeAt(endMarkerCursor);
+    function beforeAlias(code: Code): State | undefined {
+      effects.enter('wikiLinkAlias');
+      return alias(code);
+    }
+
+    function alias(code: Code): State | undefined {
+      // when the code matches the first code of the closing fence, proceed to the next segment
+      const nextEndMarkerCode = config.closingFence.charCodeAt(closingMarkerSize);
       if (code === nextEndMarkerCode) {
-        // when we reach the end marker without seeing an alias, abort
-        if (!alias) return nok(code);
-        effects.exit('wikiLinkAlias');
-        effects.exit('wikiLinkData');
-        effects.enter('wikiLinkMarker');
-        return consumeEnd(code);
+        return afterAlias(code);
       }
 
+      // if we reach a line ending or EOF before closing the internal link, this is invalid syntax
       if (markdownLineEnding(code) || isEndOfFile(code)) {
         return nok(code);
       }
 
       // as long as the alias has more than just whitespace, there's alias content
       if (!isLineEndingTabOrSpace(code)) {
-        alias = true;
+        containsAlias = true;
       }
 
+      // otherwise keep consuming the alias
       effects.consume(code);
-
-      return consumeAlias;
+      return alias;
     }
 
-    function consumeEnd(code: Code): State | undefined {
-      debugger
-      // the syntax is valid and complete after the entire length of the end marker is matched
-      if (endMarkerCursor === closeMarker.length) {
-        effects.exit('wikiLinkMarker');
-        effects.exit('wikiLink');
-        return ok(code);
+    function afterAlias(code: Code): State | undefined {
+      // ensure we detected an alias after the divider
+      if (containsAlias) {
+        effects.exit('wikiLinkAlias');
+        return beforeClosingFence(code)
       }
 
-      // when the code matches th next character in the end marker
-      const nextEndMarkerCode = closeMarker.charCodeAt(endMarkerCursor);
+      return nok(code);
+    }
+
+    /**
+     * Exit the data sequence and start the closing fence
+     */
+    function beforeClosingFence(code: Code): State | undefined {
+      // ensure we have at least a target at this point, otherwise the grammar is invalid
+      if (containsTarget) {
+        effects.exit('wikiLinkData');
+        effects.enter('wikiLinkMarker');
+        return closingFence(code);
+      }
+
+      return nok(code);
+    }
+
+    function closingFence(code: Code): State | undefined {
+      // when we've reached the end of the closing fence
+      if (closingMarkerSize === config.closingFence.length) {
+        return afterClosingFence(code);
+      }
+
+      // when the code matches the next code in the closing fence
+      const nextEndMarkerCode = config.closingFence.charCodeAt(closingMarkerSize);
       if (code !== nextEndMarkerCode) {
         return nok(code);
       }
 
       effects.consume(code);
-      endMarkerCursor++;
+      closingMarkerSize++;
 
-      return consumeEnd;
+      return closingFence;
+    }
+
+    function afterClosingFence(code: Code): State | undefined {
+      // the syntax is valid and complete
+      effects.exit('wikiLinkMarker');
+      effects.exit('wikiLink');
+      return ok(code);
     }
   }
 

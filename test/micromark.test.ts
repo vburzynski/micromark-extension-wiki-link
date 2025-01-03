@@ -4,94 +4,99 @@ import { micromark } from 'micromark';
 import { stripIndent } from 'proper-tags';
 import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table'
 
-import { html } from '../src/index.js';
-import { syntax } from '../src/syntax.js';
+import { internalLinkHtml, internalLinkSyntax, WikiLinkSyntaxOptions} from '../src/index.js';
 
-function basicSerializer(markdown: string, permalink: Array<string> = []) {
+function serialize(markdown: string, options: WikiLinkSyntaxOptions = {}, permalink: Array<string> = []) {
   return micromark(markdown, {
-    extensions: [syntax()],
-    htmlExtensions: [html({ permalinks: permalink })],
+    extensions: [internalLinkSyntax(options)],
+    htmlExtensions: [internalLinkHtml({ permalinks: permalink })],
   });
 }
 
 describe('micromark-extension-wiki-link', function () {
-  describe('wiki links', function () {
+  describe('basic wiki links', function () {
     it('parses a wiki link that has a matching permalink', function () {
-      let serialized = basicSerializer('[[Wiki Link]]', ['wiki_link']);
+      let html = serialize('[[Wiki Link]]', {}, ['wiki_link']);
 
-      expect(serialized).to.equal('<p><a href="#/page/wiki_link" class="internal">Wiki Link</a></p>');
+      expect(html).to.equal('<p><a href="#/page/wiki_link" class="internal">Wiki Link</a></p>');
     });
 
     it('parses a wiki link that has no matching permalink', function () {
-      let serialized = basicSerializer('[[Wiki Link]]');
+      let html = serialize('[[Wiki Link]]');
 
-      expect(serialized).to.equal('<p><a href="#/page/wiki_link" class="internal new">Wiki Link</a></p>');
+      expect(html).to.equal('<p><a href="#/page/wiki_link" class="internal new">Wiki Link</a></p>');
     });
   });
 
   describe('aliases', function () {
     it('handles wiki links with aliases', function () {
-      let serialized = basicSerializer('[[Real Page:Page Alias]]');
+      let html = serialize('[[Real Page:Page Alias]]');
 
-      expect(serialized).to.equal('<p><a href="#/page/real_page" class="internal new">Page Alias</a></p>');
+      expect(html).to.equal('<p><a href="#/page/real_page" class="internal new">Page Alias</a></p>');
     });
 
     it('handles wiki links with a custom alias divider', function () {
-      let serialized = micromark('[[Real Page||Page Alias]]', 'ascii', {
-        extensions: [syntax({ aliasDivider: '||' })],
-        htmlExtensions: [html()],
-      });
+      let html = serialize('[[Real Page||Page Alias]]', { aliasDivider: '||' });
 
-      expect(serialized).to.equal('<p><a href="#/page/real_page" class="internal new">Page Alias</a></p>');
+      expect(html).to.equal('<p><a href="#/page/real_page" class="internal new">Page Alias</a></p>');
     });
+  });
+
+  describe('internal link with anchor', function () {
+    it.skip('handles wiki links pointint to an anchor in the same document', function () {
+      let html = serialize('[[#anchor]]');
+    })
+    it.skip('handles wiki links pointing to an anchor in another document', function () {
+      let html = serialize('[[title#anchor]]');
+    })
   });
 
   describe('file embeds and transclusions', function () {
     it('handles embedded images with a matching permalink', function () {
-      const serialized = basicSerializer('![[image.jpg]]', ['image.jpg']);
+      const html = serialize('![[image.jpg]]', {}, ['image.jpg']);
 
-      expect(serialized).to.equal('<p><a href="#/page/image.jpg" class="internal">image.jpg</a></p>');
+      expect(html).to.equal('<p><a href="#/page/image.jpg" class="internal">image.jpg</a></p>');
     });
 
     it('handles embedded images with no matching permalink', function () {
-      const serialized = basicSerializer('![[image.jpg]]');
+      const html = serialize('![[image.jpg]]');
 
-      expect(serialized).to.equal('<p><a href="#/page/image.jpg" class="internal new">image.jpg</a></p>');
+      expect(html).to.equal('<p><a href="#/page/image.jpg" class="internal new">image.jpg</a></p>');
     });
   });
 
   describe('open wiki links', function () {
     it('handles open wiki links', function () {
-      let serialized = basicSerializer('t[[\nt');
+      let html = serialize('t[[\nt');
 
-      expect(serialized).to.equal('<p>t[[\nt</p>');
+      expect(html).to.equal('<p>t[[\nt</p>');
     });
 
     it('handles open wiki links at end of file', function () {
-      let serialized = basicSerializer('t [[');
+      let html = serialize('t [[');
 
-      expect(serialized).to.equal('<p>t [[</p>');
+      expect(html).to.equal('<p>t [[</p>');
     });
 
     it('handles open wiki links with partial data', function () {
-      let serialized = basicSerializer('t [[tt\nt');
+      let html = serialize('t [[tt\nt');
 
-      expect(serialized).to.equal('<p>t [[tt\nt</p>');
+      expect(html).to.equal('<p>t [[tt\nt</p>');
     });
 
     it('handles open wiki links with partial alias divider', function () {
-      let serialized = micromark('[[t|\nt', {
-        extensions: [syntax({ aliasDivider: '||' })],
-        htmlExtensions: [html()],
+      let html = micromark('[[t|\nt', {
+        extensions: [internalLinkSyntax({ aliasDivider: '||' })],
+        htmlExtensions: [internalLinkHtml()],
       });
 
-      expect(serialized).to.equal('<p>[[t|\nt</p>');
+      expect(html).to.equal('<p>[[t|\nt</p>');
     });
 
     it('handles open wiki links with partial alias', function () {
-      let serialized = basicSerializer('[[t:\nt');
+      let html = serialize('[[t:\nt');
 
-      expect(serialized).to.equal('<p>[[t:\nt</p>');
+      expect(html).to.equal('<p>[[t:\nt</p>');
     });
   });
 
@@ -99,77 +104,77 @@ describe('micromark-extension-wiki-link', function () {
     it('uses pageResolver', function () {
       let identity = (name: string) => [name];
 
-      let serialized = micromark('[[A Page]]', {
-        extensions: [syntax()],
+      let html = micromark('[[A Page]]', {
+        extensions: [internalLinkSyntax()],
         htmlExtensions: [
-          html({
+          internalLinkHtml({
             pageResolver: identity,
             permalinks: ['A Page'],
           }),
         ],
       });
 
-      expect(serialized).to.equal('<p><a href="#/page/A Page" class="internal">A Page</a></p>');
+      expect(html).to.equal('<p><a href="#/page/A Page" class="internal">A Page</a></p>');
     });
 
     it('uses newClassName', function () {
-      let serialized = micromark('[[A Page]]', {
-        extensions: [syntax()],
+      let html = micromark('[[A Page]]', {
+        extensions: [internalLinkSyntax()],
         htmlExtensions: [
-          html({
+          internalLinkHtml({
             newClassName: 'new_page',
           }),
         ],
       });
 
-      expect(serialized).to.equal('<p><a href="#/page/a_page" class="internal new_page">A Page</a></p>');
+      expect(html).to.equal('<p><a href="#/page/a_page" class="internal new_page">A Page</a></p>');
     });
 
     it('uses hrefTemplate', function () {
       let hrefTemplate = (permalink: string) => permalink;
-      let serialized = micromark('[[A Page]]', {
-        extensions: [syntax()],
+      let html = micromark('[[A Page]]', {
+        extensions: [internalLinkSyntax()],
         htmlExtensions: [
-          html({
+          internalLinkHtml({
             hrefTemplate: hrefTemplate,
           }),
         ],
       });
 
-      expect(serialized).to.equal('<p><a href="a_page" class="internal new">A Page</a></p>');
+      expect(html).to.equal('<p><a href="a_page" class="internal new">A Page</a></p>');
     });
 
     it('uses wikiLinkClassName', function () {
-      let serialized = micromark('[[A Page]]', {
-        extensions: [syntax()],
+      let html = micromark('[[A Page]]', {
+        extensions: [internalLinkSyntax()],
         htmlExtensions: [
-          html({
+          internalLinkHtml({
             wikiLinkClassName: 'wiki_link',
             permalinks: ['a_page'],
           }),
         ],
       });
 
-      expect(serialized).to.equal('<p><a href="#/page/a_page" class="wiki_link">A Page</a></p>');
+      expect(html).to.equal('<p><a href="#/page/a_page" class="wiki_link">A Page</a></p>');
     });
   });
 
   describe('compatibility with GFM Tables', function () {
     function serialize(markdown: string) {
       return micromark(markdown, {
-        extensions: [gfmTable(), syntax({ aliasDivider: '|' })],
-        htmlExtensions: [gfmTableHtml(), html()]
+        extensions: [gfmTable(), internalLinkSyntax({ aliasDivider: '|' })],
+        htmlExtensions: [gfmTableHtml(), internalLinkHtml()]
       });
     }
 
     it('handles a basic wikilink', function () {
-      const serialized = serialize(stripIndent`
+      const html = serialize(stripIndent`
         | header | header |
         | --- | --- |
         | [[wikilink]] | text |
       `);
 
-      expect(serialized).to.equal(stripIndent`
+      expect(html).to.equal(stripIndent`
         <table>
         <thead>
         <tr>
@@ -193,9 +198,9 @@ describe('micromark-extension-wiki-link', function () {
         | ------------------- | ------ |
         | [[wikilink\\|alias]] | text   |
       `
-      const serialized = serialize(md);
+      const html = serialize(md);
 
-      expect(serialized).to.equal(stripIndent`
+      expect(html).to.equal(stripIndent`
         <table>
         <thead>
         <tr>

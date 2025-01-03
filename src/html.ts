@@ -1,5 +1,5 @@
 import { CompileContext, HtmlExtension, Token } from "micromark-util-types";
-import { HtmlOptions } from "./types.js";
+import { HtmlConfig, HtmlOptions } from "./types.js";
 
 interface WikiLink {
   target: string;
@@ -16,22 +16,24 @@ declare module 'micromark-util-types' {
   }
 }
 
-function html(opts: HtmlOptions = {}): HtmlExtension {
-  const permalinks = opts.permalinks ?? [];
-  const defaultPageResolver = (name: string) => [name.replace(/ /g, '_').toLowerCase()];
-  const pageResolver = opts.pageResolver ?? defaultPageResolver;
-  const newClassName = opts.newClassName ?? 'new';
-  const wikiLinkClassName = opts.wikiLinkClassName ?? 'internal';
-  const defaultHrefTemplate = (permalink: string) => `#/page/${permalink}`;
-  const hrefTemplate = opts.hrefTemplate ?? defaultHrefTemplate;
+const defaultConfig: HtmlConfig = {
+  permalinks: [],
+  pageResolver: (name: string) => [name.replace(/ /g, '_').toLowerCase()],
+  newClassName: 'new',
+  wikiLinkClassName: 'internal',
+  hrefTemplate: (permalink: string) => `#/page/${permalink}`,
+};
+
+function internalLinkHtml(opts: HtmlOptions = {}): HtmlExtension {
+  const config: HtmlConfig = { ...defaultConfig, ...opts };
 
   function enterWikiLink(this: CompileContext, _token: Token): undefined {
     let stack = this.getData('wikiLinkStack');
-    if (!stack) this.setData('wikiLinkStack', (stack = []));
+    if (!stack) {
+      this.setData('wikiLinkStack', (stack = []));
+    }
 
-    stack.push({
-      target: '',
-    });
+    stack.push({ target: '' });
   }
 
   function top(stack: WikiLink[]) {
@@ -53,8 +55,8 @@ function html(opts: HtmlOptions = {}): HtmlExtension {
   function exitWikiLink(this: CompileContext): undefined {
     const wikiLink = this.getData('wikiLinkStack').pop();
 
-    const pagePermalinks = pageResolver(wikiLink!.target);
-    let permalink = pagePermalinks.find((pagePermalink) => permalinks.includes(pagePermalink));
+    const pagePermalinks = config.pageResolver(wikiLink!.target);
+    let permalink = pagePermalinks.find((pagePermalink) => config.permalinks.includes(pagePermalink));
 
     const exists = permalink !== undefined;
     if (!exists) {
@@ -66,12 +68,12 @@ function html(opts: HtmlOptions = {}): HtmlExtension {
       displayName = wikiLink!.alias;
     }
 
-    let classNames = wikiLinkClassName;
+    let classNames = config.wikiLinkClassName;
     if (!exists) {
-      classNames += ' ' + newClassName;
+      classNames += ' ' + config.newClassName;
     }
 
-    this.tag('<a href="' + hrefTemplate(permalink ?? '') + '" class="' + classNames + '">');
+    this.tag('<a href="' + config.hrefTemplate(permalink ?? '') + '" class="' + classNames + '">');
     this.raw(displayName);
     this.tag('</a>');
   }
@@ -88,4 +90,4 @@ function html(opts: HtmlOptions = {}): HtmlExtension {
   };
 }
 
-export { html };
+export { internalLinkHtml };

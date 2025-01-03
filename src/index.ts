@@ -1,6 +1,6 @@
-import { html } from './html.js';
-import { syntax } from './syntax.js';
+import { internalLinkHtml } from './html.js';
+import { internalLinkSyntax } from './syntax.js';
 
-export { syntax, html };
+export { internalLinkSyntax, internalLinkHtml };
 
 export * from './types.js';
