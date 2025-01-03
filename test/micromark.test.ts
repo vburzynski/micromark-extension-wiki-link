@@ -2,9 +2,9 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { micromark } from 'micromark';
 import { stripIndent } from 'proper-tags';
-import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table'
+import { gfmTable, gfmTableHtml } from 'micromark-extension-gfm-table';
 
-import { internalLinkHtml, internalLinkSyntax, WikiLinkSyntaxOptions} from '../src/index.js';
+import { internalLinkHtml, internalLinkSyntax, WikiLinkSyntaxOptions } from '../src/index.js';
 
 function serialize(markdown: string, options: WikiLinkSyntaxOptions = {}, permalink: Array<string> = []) {
   return micromark(markdown, {
@@ -43,14 +43,17 @@ describe('micromark-extension-wiki-link', function () {
   });
 
   describe('internal link with anchor', function () {
-    it.skip('handles wiki links pointint to an anchor in the same document', function () {
+    it('handles wiki links pointint to an anchor in the same document', function () {
       let html = serialize('[[#anchor]]');
-      expect(html).to.equal('<p><a href="page/real_page" class="internal broken-link">anchor</a></p>');
-    })
-    it.skip('handles wiki links pointing to an anchor in another document', function () {
-      let html = serialize('[[title#anchor]]');
-      expect(html).to.equal('<p><a href="page/real_page" class="internal broken-link">anchor</a></p>');
-    })
+
+      expect(html).to.equal('<p><a href="#anchor" class="internal">anchor</a></p>');
+    });
+
+    it('handles wiki links pointing to an anchor in another document', function () {
+      let html = serialize('[[title#anchor]]', {}, ['title']);
+
+      expect(html).to.equal('<p><a href="page/title#anchor" class="internal">anchor</a></p>');
+    });
   });
 
   describe('file embeds and transclusions', function () {
@@ -165,7 +168,7 @@ describe('micromark-extension-wiki-link', function () {
     function serialize(markdown: string) {
       return micromark(markdown, {
         extensions: [gfmTable(), internalLinkSyntax({ aliasDivider: '|' })],
-        htmlExtensions: [gfmTableHtml(), internalLinkHtml()]
+        htmlExtensions: [gfmTableHtml(), internalLinkHtml()],
       });
     }
 
@@ -199,7 +202,7 @@ describe('micromark-extension-wiki-link', function () {
         | header              | header |
         | ------------------- | ------ |
         | [[wikilink\\|alias]] | text   |
-      `
+      `;
       const html = serialize(md);
 
       expect(html).to.equal(stripIndent`
@@ -219,5 +222,5 @@ describe('micromark-extension-wiki-link', function () {
         </table>
       `);
     });
-  })
+  });
 });

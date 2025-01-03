@@ -21,12 +21,13 @@ const defaultConfig: HtmlConfig = {
   permalinks: [],
   brokenLinkClassName: 'broken-link',
   wikiLinkClassName: 'internal',
-  // the page resolver passes back a list of candidate page paths (relative)
+  // the page resolver passes back a list of candidate page targets
   pageResolver: (name: string) => [name.replace(/ /g, '_').toLowerCase()],
-  hrefTemplate: (permalink: string, anchor: string) => {
+  // this resolves the page target to an actual address to link to
+  hrefTemplate: (permalink: string, anchor: string | undefined) => {
     if (permalink && anchor) return `page/${permalink}#${anchor}`;
     if (permalink) return `page/${permalink}`;
-    if (anchor) return anchor;
+    if (anchor) return `#${anchor}`;
     return '#';
   },
 };
@@ -40,6 +41,12 @@ function internalLinkHtml(opts: HtmlOptions = {}): HtmlExtension {
     stack.push({ target: '' });
   }
 
+  function exitWikiLinkAnchor(this: CompileContext, token: Token): undefined {
+    const anchor = this.sliceSerialize(token);
+    const stack = this.getData('wikiLinkStack')
+    const current = stack[stack.length - 1];
+    current.anchor = anchor;
+  }
 
   function exitWikiLinkAlias(this: CompileContext, token: Token): undefined {
     const alias = this.sliceSerialize(token);
@@ -81,6 +88,7 @@ function internalLinkHtml(opts: HtmlOptions = {}): HtmlExtension {
     if (wikiLink.target) {
       const permalinkCandidates = config.pageResolver(wikiLink.target!);
       const found = permalinkCandidates.find((pagePermalink) => config.permalinks.includes(pagePermalink));
+
       if (found) permalink = found;
       brokenLink = !permalink;
       if (brokenLink) permalink = permalinkCandidates[0];
@@ -102,6 +110,7 @@ function internalLinkHtml(opts: HtmlOptions = {}): HtmlExtension {
     },
     exit: {
       wikiLinkTarget: exitWikiLinkTarget,
+      wikiLinkAnchor: exitWikiLinkAnchor,
       wikiLinkAlias: exitWikiLinkAlias,
       wikiLink: exitWikiLink,
     },

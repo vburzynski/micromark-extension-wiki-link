@@ -204,7 +204,10 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
      * ```
      */
     function target(code: Code): State | undefined {
-      // TODO: check if we've encountered the anchor divider
+      if (code === codes.numberSign) {
+        effects.exit('wikiLinkTarget');
+        return beforeAnchor(code)
+      }
 
       // when code matches the first code of the alias divider
       if (atAliasDivider(code)) {
