@@ -4,6 +4,7 @@ import { WikiLinkHtmlConfig, WikiLinkHtmlOptions } from "./types.js";
 interface WikiLink {
   target: string;
   anchor?: string;
+  anchorType?: string;
   alias?: string;
 }
 
@@ -40,11 +41,20 @@ function internalLinkHtml(opts: WikiLinkHtmlOptions = {}): HtmlExtension {
     stack.push({ target: '' });
   }
 
-  function exitWikiLinkAnchor(this: CompileContext, token: Token): undefined {
+  function exitWikiLinkHeading(this: CompileContext, token: Token): undefined {
     const anchor = this.sliceSerialize(token);
     const stack = this.getData('wikiLinkStack')
     const current = stack[stack.length - 1];
     current.anchor = anchor;
+    current.anchorType = 'heading';
+  }
+
+  function exitWikiLinkBlockId(this: CompileContext, token: Token): undefined {
+    const blockId = this.sliceSerialize(token);
+    const stack = this.getData('wikiLinkStack')
+    const current = stack[stack.length - 1];
+    current.anchor = blockId;
+    current.anchorType = 'blockId';
   }
 
   function exitWikiLinkAlias(this: CompileContext, token: Token): undefined {
@@ -101,8 +111,16 @@ function internalLinkHtml(opts: WikiLinkHtmlOptions = {}): HtmlExtension {
     return [permalink, brokenLink];
   }
 
+  // TODO: make this configurable
   function getDisplayName(wikiLink: WikiLink): string {
     if (wikiLink.alias) return wikiLink.alias;
+    if (wikiLink.anchor && wikiLink.target && wikiLink.anchorType === 'heading') {
+      return `${wikiLink.target} > ${wikiLink.anchor}`;
+    }
+    if (wikiLink.anchor && wikiLink.target && wikiLink.anchorType === 'blockId') {
+      return `${wikiLink.target} > ^${wikiLink.anchor}`;
+    }
+    if (wikiLink.anchor && wikiLink.anchorType === 'blockId') return `^${wikiLink.anchor}`;
     if (wikiLink.anchor) return wikiLink.anchor;
 
     return wikiLink.target!;
@@ -114,7 +132,8 @@ function internalLinkHtml(opts: WikiLinkHtmlOptions = {}): HtmlExtension {
     },
     exit: {
       wikiLinkDestination: exitWikiLinkTarget,
-      wikiLinkHeading: exitWikiLinkAnchor,
+      wikiLinkHeading: exitWikiLinkHeading,
+      wikiLinkBlockId: exitWikiLinkBlockId,
       wikiLinkAlias: exitWikiLinkAlias,
       wikiLink: exitWikiLink,
     },

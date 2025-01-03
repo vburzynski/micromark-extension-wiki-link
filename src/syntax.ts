@@ -51,6 +51,8 @@ declare module 'micromark-util-types' {
     // (optional) encloses the block id value which follows an anchor marker
     // - must be preceeded by an anchor marker
     wikiLinkBlockReference: 'wikiLinkBlockReference',
+    wikiLinkBlockMarker: 'wikiLinkBlockMarker',
+    wikiLinkBlockId: 'wikiLinkBlockId',
 
     // (optional) encloses the alias marker
     // - when a heading is present, the alias marker must appear after the last heading
@@ -96,6 +98,16 @@ function isLineEndingTabOrSpace(code: Code) {
 
 function isEndOfFile(code: Code): boolean {
   return code === codes.eof;
+}
+
+const blockIdentifierRegex: RegExp = /[-A-Za-z0-9]/;
+
+function check(regex: RegExp, code: Code): boolean {
+  return code !== null && code > -1 && regex.test(String.fromCharCode(code));
+}
+
+function blockIdentifier(code: Code): boolean {
+  return check(blockIdentifierRegex, code);
 }
 
 /**
@@ -317,14 +329,36 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
         effects.enter('wikiLinkAnchor');
         effects.consume(code);
         effects.exit('wikiLinkAnchor');
-        effects.enter('wikiLinkHeading');
-        return heading;
+        return anchorFork;
       }
 
       return nok(code);
     }
 
+    /**
+     * ```markdown
+     * > | [[target#anchor|alias]]
+     * >            ^
+     * ```
+     */
+    function anchorFork(code: Code): State | undefined {
+      // when the first charater is a caret, then this is a block reference anchor, not a heading anchor
+      if (code === codes.caret) {
+        effects.enter('wikiLinkBlockReference');
+        effects.enter('wikiLinkBlockMarker')
+        effects.consume(code);
+        effects.exit('wikiLinkBlockMarker')
+        effects.enter('wikiLinkBlockId')
+        return blockReference;
+      }
+
+      effects.enter('wikiLinkHeading');
+      return heading(code);
+    }
+
     function heading(code: Code): State | undefined {
+      // TODO: implement subheading support here...
+
       // exit when code matches the first code of the alias divider
       if (atAliasDivider(code)) {
         effects.exit('wikiLinkHeading');
@@ -359,6 +393,56 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
 
     function betweenHeadingAndAliasDivider(code: Code): State | undefined {
       effects.exit('wikiLinkHeading');
+      return beforeAliasDivider(code);
+    }
+
+    /**
+     * ```markdown
+     * > | [[target#^block-id|alias]]
+     * >            ^^^^^^^^^
+     * ```
+     */
+    function blockReference(code: Code): State | undefined {
+      // exit when code matches the first code of the alias divider
+      if (atAliasDivider(code)) {
+        effects.exit('wikiLinkBlockId');
+        effects.exit('wikiLinkBlockReference');
+        return beforeAliasDivider(code);
+      }
+
+      // when using a vertical bar as an alias divider, the wikilinks inside of GFM tables need to escape the vertical bar
+      if (config.aliasDivider === '|' && code === codes.backslash) {
+        return effects.attempt(escapedVerticalBarAliasDivider, betweenBlockReferenceAndAliasDivider, blockReference)(code);
+      }
+
+      // when the current code matches the first code of the closing fence
+      if (atClosingFence(code)) {
+        effects.exit('wikiLinkBlockId');
+        effects.exit('wikiLinkBlockReference');
+        return beforeClosingFence(code);
+      }
+
+      // when we reach the end of a line (or end of file) without closing the link, this is not valid syntax
+      if (markdownLineEnding(code) || isEndOfFile(code)) {
+        return nok(code);
+      }
+
+      // when the code matches non-whitespace, we know data exists inside the wikilink
+      if (!isLineEndingTabOrSpace(code)) {
+        containsTarget = true;
+      }
+
+      if (blockIdentifier(code)) {
+        effects.consume(code);
+        return blockReference;
+      }
+
+      return nok(code);
+    }
+
+    function betweenBlockReferenceAndAliasDivider(code: Code): State | undefined {
+      effects.exit('wikiLinkBlockId');
+      effects.exit('wikiLinkBlockReference');
       return beforeAliasDivider(code);
     }
 
@@ -510,6 +594,7 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
       // the syntax is valid and complete
       effects.exit('wikiLinkFence');
       effects.exit('wikiLink');
+
       return ok(code);
     }
   }
