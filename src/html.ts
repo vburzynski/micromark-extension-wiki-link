@@ -1,5 +1,5 @@
 import { CompileContext, HtmlExtension, Token } from "micromark-util-types";
-import { HtmlConfig, HtmlOptions } from "./types.js";
+import { WikiLinkHtmlConfig, WikiLinkHtmlOptions } from "./types.js";
 
 interface WikiLink {
   target: string;
@@ -17,23 +17,22 @@ declare module 'micromark-util-types' {
   }
 }
 
-const defaultConfig: HtmlConfig = {
+const defaultConfig: WikiLinkHtmlConfig = {
   permalinks: [],
   brokenLinkClassName: 'broken-link',
   wikiLinkClassName: 'internal',
-  // the page resolver passes back a list of candidate page targets
   pageResolver: (name: string) => [name.replace(/ /g, '_').toLowerCase()],
-  // this resolves the page target to an actual address to link to
+  anchorResolver: (name: string) => [name.replace(/ /g, '_').toLowerCase()],
   hrefTemplate: (permalink: string, anchor: string | undefined) => {
     if (permalink && anchor) return `page/${permalink}#${anchor}`;
     if (permalink) return `page/${permalink}`;
     if (anchor) return `#${anchor}`;
     return '#';
-  },
+  }
 };
 
-function internalLinkHtml(opts: HtmlOptions = {}): HtmlExtension {
-  const config: HtmlConfig = { ...defaultConfig, ...opts };
+function internalLinkHtml(opts: WikiLinkHtmlOptions = {}): HtmlExtension {
+  const config: WikiLinkHtmlConfig = { ...defaultConfig, ...opts };
 
   function enterWikiLink(this: CompileContext, _token: Token): undefined {
     let stack: WikiLink [] = this.getData('wikiLinkStack') || [];
@@ -80,17 +79,22 @@ function internalLinkHtml(opts: HtmlOptions = {}): HtmlExtension {
   }
 
   function getPermalink(wikiLink: WikiLink): [string, boolean] {
+    // by default, when no target is specified,
     let permalink: string = '';
     let brokenLink: boolean = false;
+    let isTargetPresent: boolean = !!wikiLink.target && wikiLink.target.length > 0;
 
-    // when there's a target, find a permalink to map to
-    // otherwise we're linking to an anchor or block-id on the current page
-    if (wikiLink.target) {
+    // when the wikilink specifies a target...
+    if (isTargetPresent) {
+      // map/resolve the internal link target to an array of possible permalink candidates
       const permalinkCandidates = config.pageResolver(wikiLink.target!);
+      // find the first permalink candidate that matches any of the configured permalinks
       const found = permalinkCandidates.find((pagePermalink) => config.permalinks.includes(pagePermalink));
-
+      // when a match is found, use that as the permalink
       if (found) permalink = found;
+      // designate the link as broken when no permalink is found
       brokenLink = !permalink;
+      // when the link is broken use the first candidate
       if (brokenLink) permalink = permalinkCandidates[0];
     }
 

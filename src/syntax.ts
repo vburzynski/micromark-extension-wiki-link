@@ -10,7 +10,7 @@ import type {
 } from 'micromark-util-types';
 
 import { codes } from 'micromark-util-symbol';
-import { WikiLinkConfig, WikiLinkSyntaxOptions } from './types.js';
+import { WikiLinkSyntaxConfig, WikiLinkSyntaxOptions } from './types.js';
 import { markdownLineEnding } from 'micromark-util-character';
 
 declare module 'micromark-util-types' {
@@ -69,15 +69,15 @@ const tokenizeEscapedPipeAliasMarker: Tokenizer = function (
  */
 const escapedVerticalBarAliasDivider: Construct = { tokenize: tokenizeEscapedPipeAliasMarker, partial: true };
 
-const defaultConfig: WikiLinkConfig = {
-  aliasDivider: ':',
+const defaultConfig: WikiLinkSyntaxConfig = {
+  aliasDivider: '|',
   openingFence: '[[',
   closingFence: ']]',
 }
 
 export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extension {
   const embedModifier = codes.exclamationMark;
-  const config: WikiLinkConfig = { ...defaultConfig, ...options }
+  const config: WikiLinkSyntaxConfig = { ...defaultConfig, ...options }
 
   function tokenize(this: TokenizeContext, effects: Effects, ok: State, nok: State) {
     const self = this;
