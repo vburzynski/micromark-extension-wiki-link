@@ -13,17 +13,78 @@ import { codes } from 'micromark-util-symbol';
 import { WikiLinkSyntaxConfig, WikiLinkSyntaxOptions } from './types.js';
 import { markdownLineEnding } from 'micromark-util-character';
 
+/*
+ * This internal link (wiki link) syntax tokenization aims to be compatible with Obsidian's implementation.
+ * It also offers configuration options that may support other wiki link grammars
+ */
+
 declare module 'micromark-util-types' {
   interface TokenTypeMap {
-    wikiLink: 'wikiLink', // encloses the entire wikilink
-    wikiLinkFence: 'wikiLinkFence' // encloses the opening or closing fences
-    wikiLinkTitle: 'wikiLinkTitle' // encloses the title value
-    wikiLinkAnchor: 'wikiLinkAnchor', // encloses the anchor marker (#)
-    wikiLinkHeading: 'wikiLinkHeading', // encloses the heading value which succeeds an anchor marker
-    wikiLinkAliasMarker: 'wikiLinkAliasMarker' // the alias marker that might appear after the target
-    wikiLinkAlias: 'wikiLinkAlias' // the alias value (appears after the alias marker)
+    // (required) encloses the entire wikilink
+    wikiLink: 'wikiLink',
+
+    // (required) encloses the opening or closing fences
+    // - there must be an opening fence and a closing fence
+    wikiLinkFence: 'wikiLinkFence'
+
+    // (optional) encloses the destination
+    // - may be omitted when an anchor is present
+    // - when omitted, the current document is implicitly assumed to be the destination for the internal link
+    // - shortest path destination: a page title (by convention this is typically the filename omitting the extension)
+    // - relative path destination: relative path to the targeted file
+    // - absolute path destination: absolute path to the target file with `/` at the beginning denoting
+    wikiLinkDestination: 'wikiLinkDestination'
+
+    // (optional) encloses the anchor marker (#)
+    // - required if no destination value is provided
+    // - when present without a destination, it signals presence of a reference to a heading or block id
+    // - the anchor marker must be paired with either a heading or block-id
+    // - when an anchor marker is paired with a block reference; only one pair may appear in the internal link
+    // - when an anchor marker is paired with a heading, it may be followed up with any recursive subheading
+    // - a sequence of marker+heading pairs may be longer than 2 pairs
+    wikiLinkAnchor: 'wikiLinkAnchor',
+
+    // (optional) encloses the heading value which follows an anchor marker
+    // - must be preceeded by an anchor marker
+    wikiLinkHeading: 'wikiLinkHeading',
+
+    // (optional) encloses the block id value which follows an anchor marker
+    // - must be preceeded by an anchor marker
+    wikiLinkBlockReference: 'wikiLinkBlockReference',
+
+    // (optional) encloses the alias marker
+    // - when a heading is present, the alias marker must appear after the last heading
+    // - when no heading is present, it appears after the destination
+    wikiLinkAliasMarker: 'wikiLinkAliasMarker'
+
+    // (optional) encloses the alias value
+    // - appears after the alias marker
+    // - in Obsidian, this value is either a custom label, or an alias matching a string in the aliases property
+    wikiLinkAlias: 'wikiLinkAlias'
   }
 }
+
+// types of supported internal links...
+// [[destination]]                     | targets a destination (a destination can take the forms below)
+//   [[filename]]                      |   shortest path destination
+//   [[./subfolder/filename]]          |   relative path destination targeting file inside subfolder
+//   [[./filename]]                    |   relative path destination targeting sibling file
+//   [[../filename]]                   |   relative path destination targeting file inside parent folder
+//   [[/folder/filename]]              |   absolute path destination
+// [[#heading]]                        | targets a heading in the current file
+// [[#heading#subheading]]             | targets a subheading in the current file
+// [[#h1#h2#h3#h4#h5#h6]]              | targets a nested subheading in the current file
+// [[destination#heading]]             | targets a heading in another file
+// [[destination#heading#subheading]]  | targets a subheading in another file
+// [[destination#h1#h2#h3#h4#h5#h6]]   | targets a nested subheading in another file
+// [[#^block-id]]                      | targets a block id in the current file
+// [[destination#^block-id]]           | targets a block id in another file
+// [[destination|alias]]               | aliased link targeting a destination
+// [[destination\|alias]]              | aliased link targeting a destination and appearing inside a GFM table cell
+// [[#heading|alias]]                  | aliased link targeting a heading in the current document
+// [[destination#heading|alias]]       | aliased link targeting a heading in another document
+// [[#^block-id|alias]]                | aliased link targeting a block id in the current document
+// [[destination#^block-id|alias]]     | aliased link targeting a block id in another document
 
 /**
  * Matches a carriage return, line feed, carriage return line feed, virtual space, end of file, or space character
@@ -50,7 +111,7 @@ const tokenizeEscapedPipeAliasMarker: Tokenizer = function (
 
   function start(code: Code) {
     if (code === codes.backslash) {
-      effects.exit('wikiLinkTitle');
+      effects.exit('wikiLinkDestination');
       effects.enter('wikiLinkAliasMarker');
       effects.consume(code);
       return consumeAliasDivider;
@@ -64,7 +125,7 @@ const tokenizeEscapedPipeAliasMarker: Tokenizer = function (
 };
 
 /**
- * A construct to tokenize the escaped version of a vertical bar used as an alias divider
+ * A construct to tokenize the escaped version of a vertical bar used as an alias divider (when inside a GRM table cell)
  */
 const escapedVerticalBarAliasDivider: Construct = { tokenize: tokenizeEscapedPipeAliasMarker, partial: true };
 
@@ -176,7 +237,7 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
         return anchor(code)
       }
 
-      return beforeTitle(code);
+      return beforeDestination(code);
     }
 
     /**
@@ -185,14 +246,14 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
      * >     ^
      * ```
      */
-    function beforeTitle(code: Code): State | undefined {
+    function beforeDestination(code: Code): State | undefined {
       if (markdownLineEnding(code) || isEndOfFile(code)) {
         return nok(code);
       }
 
-      effects.enter('wikiLinkTitle');
+      effects.enter('wikiLinkDestination');
 
-      return title(code);
+      return destination(code);
     }
 
     /**
@@ -201,26 +262,27 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
      * >     ^^^^^^
      * ```
      */
-    function title(code: Code): State | undefined {
+    function destination(code: Code): State | undefined {
+      // when we've reached an anchor marker
       if (code === codes.numberSign) {
-        effects.exit('wikiLinkTitle');
+        effects.exit('wikiLinkDestination');
         return anchor(code)
       }
 
       // when code matches the first code of the alias divider
       if (atAliasDivider(code)) {
-        effects.exit('wikiLinkTitle');
+        effects.exit('wikiLinkDestination');
         return beforeAliasDivider(code);
       }
 
       // when using a vertical bar as an alias divider, the wikilinks inside of GFM tables need to escape the vertical bar
       if (config.aliasDivider === '|' && code === codes.backslash) {
-        return effects.attempt(escapedVerticalBarAliasDivider, betweenTitleAndAliasDivider, title)(code);
+        return effects.attempt(escapedVerticalBarAliasDivider, betweenDestinationAndAliasDivider, destination)(code);
       }
 
       // when the current code matches the first code of the closing fence
       if (atClosingFence(code)) {
-        effects.exit('wikiLinkTitle');
+        effects.exit('wikiLinkDestination');
         return beforeClosingFence(code);
       }
 
@@ -236,11 +298,11 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
 
       effects.consume(code);
 
-      return title;
+      return destination;
     }
 
-    function betweenTitleAndAliasDivider(code: Code): State | undefined {
-      effects.exit('wikiLinkTitle');
+    function betweenDestinationAndAliasDivider(code: Code): State | undefined {
+      effects.exit('wikiLinkDestination');
       return beforeAliasDivider(code);
     }
 

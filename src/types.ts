@@ -11,9 +11,9 @@ export interface WikiLinkSyntaxConfig {
   closingFence: string;
 }
 
-export type PageResolver = (page: string) => string[];
+export type PageDestinationResolver = (destination: string) => string[];
 
-export type AnchorResolver = (page: string, heading: string) => string[];
+export type PageAnchorResolver = (destination: string, heading: string) => string[];
 
 export type HrefTemplate = (permalink: string, anchor: string | undefined) => string;
 
@@ -30,10 +30,10 @@ export interface WikiLinkHtmlConfig {
   permalinks: string[];
 
   // a callback that resolves a target name to a list of candidate permalinks
-  pageResolver: PageResolver;
+  pageResolver: PageDestinationResolver;
 
   // a callback that reolves a heading to an anchor
-  anchorResolver: AnchorResolver;
+  anchorResolver: PageAnchorResolver;
 
   // a callback that renders the href URI/URL for a given link
   hrefTemplate: HrefTemplate;
