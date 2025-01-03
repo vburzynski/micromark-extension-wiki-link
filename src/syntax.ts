@@ -17,7 +17,6 @@ declare module 'micromark-util-types' {
   interface TokenTypeMap {
     wikiLink: 'wikiLink', // encloses the entire wikilink
     wikiLinkMarker: 'wikiLinkMarker' // encloses the opening or closing markers
-    wikiLinkData: 'wikiLinkData' // encloses the target and optional divider/alias combo
     wikiLinkTarget: 'wikiLinkTarget' // encloses the first target value
     wikiLinkAnchorDivider: 'wikiLinkAnchorDivider',
     wikiLinkAnchor: 'wikiLinkAnchor',
@@ -172,7 +171,6 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
      */
     function afterOpeningFence(code: Code): State | undefined {
       effects.exit('wikiLinkMarker');
-      effects.enter('wikiLinkData');
 
       if (code === codes.numberSign) {
         return beforeAnchor(code)
@@ -409,7 +407,6 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
     function beforeClosingFence(code: Code): State | undefined {
       // ensure we have at least a target at this point, otherwise the grammar is invalid
       if (containsTarget) {
-        effects.exit('wikiLinkData');
         effects.enter('wikiLinkMarker');
         return closingFence(code);
       }
