@@ -63,7 +63,7 @@ let serialized = micromark('[[Wiki Link]]', {
 ```
 
 * `options.wikiLinkClassName [String]`: a class name that is attached to any rendered wiki links. Defaults to `"internal"`.
-* `options.newClassName [String]`: a class name that is attached to any rendered wiki links that do not exist. Defaults to `"new"`.
+* `options.brokenLinkClassName [String]`: a class name that is attached to any rendered wiki links that do not exist. Defaults to `"new"`.
 
 ### Aliasing pages
 

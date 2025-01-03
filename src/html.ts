@@ -3,6 +3,7 @@ import { HtmlConfig, HtmlOptions } from "./types.js";
 
 interface WikiLink {
   target: string;
+  anchor?: string;
   alias?: string;
 }
 
@@ -18,64 +19,81 @@ declare module 'micromark-util-types' {
 
 const defaultConfig: HtmlConfig = {
   permalinks: [],
-  pageResolver: (name: string) => [name.replace(/ /g, '_').toLowerCase()],
-  newClassName: 'new',
+  brokenLinkClassName: 'broken-link',
   wikiLinkClassName: 'internal',
-  hrefTemplate: (permalink: string) => `#/page/${permalink}`,
+  // the page resolver passes back a list of candidate page paths (relative)
+  pageResolver: (name: string) => [name.replace(/ /g, '_').toLowerCase()],
+  hrefTemplate: (permalink: string, anchor: string) => {
+    if (permalink && anchor) return `page/${permalink}#${anchor}`;
+    if (permalink) return `page/${permalink}`;
+    if (anchor) return anchor;
+    return '#';
+  },
 };
 
 function internalLinkHtml(opts: HtmlOptions = {}): HtmlExtension {
   const config: HtmlConfig = { ...defaultConfig, ...opts };
 
   function enterWikiLink(this: CompileContext, _token: Token): undefined {
-    let stack = this.getData('wikiLinkStack');
-    if (!stack) {
-      this.setData('wikiLinkStack', (stack = []));
-    }
-
+    let stack: WikiLink [] = this.getData('wikiLinkStack') || [];
+    this.setData('wikiLinkStack', stack);
     stack.push({ target: '' });
   }
 
-  function top(stack: WikiLink[]) {
-    return stack[stack.length - 1];
-  }
 
   function exitWikiLinkAlias(this: CompileContext, token: Token): undefined {
     const alias = this.sliceSerialize(token);
-    const current = top(this.getData('wikiLinkStack'));
+    const stack = this.getData('wikiLinkStack')
+    const current = stack[stack.length - 1];
     current.alias = alias;
   }
 
   function exitWikiLinkTarget(this: CompileContext, token: Token): undefined {
     const target = this.sliceSerialize(token);
-    const current = top(this.getData('wikiLinkStack'));
+    const stack = this.getData('wikiLinkStack');
+    const current = stack[stack.length - 1];
     current.target = target;
   }
 
   function exitWikiLink(this: CompileContext): undefined {
-    const wikiLink = this.getData('wikiLinkStack').pop();
+    const stack = this.getData('wikiLinkStack');
+    const wikiLink = stack.pop() as WikiLink;
 
-    const pagePermalinks = config.pageResolver(wikiLink!.target);
-    let permalink = pagePermalinks.find((pagePermalink) => config.permalinks.includes(pagePermalink));
+    const [permalink, brokenLink] = getPermalink(wikiLink);
+    const displayName: string = getDisplayName(wikiLink);
+    const anchor = wikiLink.anchor;
+    const href = config.hrefTemplate(permalink, anchor);
 
-    const exists = permalink !== undefined;
-    if (!exists) {
-      permalink = pagePermalinks[0];
-    }
+    let classNames = [config.wikiLinkClassName];
+    if (brokenLink) classNames.push(config.brokenLinkClassName);
 
-    let displayName = wikiLink!.target;
-    if (wikiLink!.alias) {
-      displayName = wikiLink!.alias;
-    }
-
-    let classNames = config.wikiLinkClassName;
-    if (!exists) {
-      classNames += ' ' + config.newClassName;
-    }
-
-    this.tag('<a href="' + config.hrefTemplate(permalink ?? '') + '" class="' + classNames + '">');
+    this.tag(`<a href="${href}" class="${classNames.join(' ')}">`)
     this.raw(displayName);
     this.tag('</a>');
+  }
+
+  function getPermalink(wikiLink: WikiLink): [string, boolean] {
+    let permalink: string = '';
+    let brokenLink: boolean = false;
+
+    // when there's a target, find a permalink to map to
+    // otherwise we're linking to an anchor or block-id on the current page
+    if (wikiLink.target) {
+      const permalinkCandidates = config.pageResolver(wikiLink.target!);
+      const found = permalinkCandidates.find((pagePermalink) => config.permalinks.includes(pagePermalink));
+      if (found) permalink = found;
+      brokenLink = !permalink;
+      if (brokenLink) permalink = permalinkCandidates[0];
+    }
+
+    return [permalink, brokenLink];
+  }
+
+  function getDisplayName(wikiLink: WikiLink): string {
+    if (wikiLink.alias) return wikiLink.alias;
+    if (wikiLink.anchor) return wikiLink.anchor;
+
+    return wikiLink.target!;
   }
 
   return {

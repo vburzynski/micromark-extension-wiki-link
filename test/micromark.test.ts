@@ -18,13 +18,13 @@ describe('micromark-extension-wiki-link', function () {
     it('parses a wiki link that has a matching permalink', function () {
       let html = serialize('[[Wiki Link]]', {}, ['wiki_link']);
 
-      expect(html).to.equal('<p><a href="#/page/wiki_link" class="internal">Wiki Link</a></p>');
+      expect(html).to.equal('<p><a href="page/wiki_link" class="internal">Wiki Link</a></p>');
     });
 
     it('parses a wiki link that has no matching permalink', function () {
       let html = serialize('[[Wiki Link]]');
 
-      expect(html).to.equal('<p><a href="#/page/wiki_link" class="internal new">Wiki Link</a></p>');
+      expect(html).to.equal('<p><a href="page/wiki_link" class="internal broken-link">Wiki Link</a></p>');
     });
   });
 
@@ -32,22 +32,24 @@ describe('micromark-extension-wiki-link', function () {
     it('handles wiki links with aliases', function () {
       let html = serialize('[[Real Page:Page Alias]]');
 
-      expect(html).to.equal('<p><a href="#/page/real_page" class="internal new">Page Alias</a></p>');
+      expect(html).to.equal('<p><a href="page/real_page" class="internal broken-link">Page Alias</a></p>');
     });
 
     it('handles wiki links with a custom alias divider', function () {
       let html = serialize('[[Real Page||Page Alias]]', { aliasDivider: '||' });
 
-      expect(html).to.equal('<p><a href="#/page/real_page" class="internal new">Page Alias</a></p>');
+      expect(html).to.equal('<p><a href="page/real_page" class="internal broken-link">Page Alias</a></p>');
     });
   });
 
   describe('internal link with anchor', function () {
     it.skip('handles wiki links pointint to an anchor in the same document', function () {
       let html = serialize('[[#anchor]]');
+      expect(html).to.equal('<p><a href="page/real_page" class="internal broken-link">anchor</a></p>');
     })
     it.skip('handles wiki links pointing to an anchor in another document', function () {
       let html = serialize('[[title#anchor]]');
+      expect(html).to.equal('<p><a href="page/real_page" class="internal broken-link">anchor</a></p>');
     })
   });
 
@@ -55,13 +57,13 @@ describe('micromark-extension-wiki-link', function () {
     it('handles embedded images with a matching permalink', function () {
       const html = serialize('![[image.jpg]]', {}, ['image.jpg']);
 
-      expect(html).to.equal('<p><a href="#/page/image.jpg" class="internal">image.jpg</a></p>');
+      expect(html).to.equal('<p><a href="page/image.jpg" class="internal">image.jpg</a></p>');
     });
 
     it('handles embedded images with no matching permalink', function () {
       const html = serialize('![[image.jpg]]');
 
-      expect(html).to.equal('<p><a href="#/page/image.jpg" class="internal new">image.jpg</a></p>');
+      expect(html).to.equal('<p><a href="page/image.jpg" class="internal broken-link">image.jpg</a></p>');
     });
   });
 
@@ -114,20 +116,20 @@ describe('micromark-extension-wiki-link', function () {
         ],
       });
 
-      expect(html).to.equal('<p><a href="#/page/A Page" class="internal">A Page</a></p>');
+      expect(html).to.equal('<p><a href="page/A Page" class="internal">A Page</a></p>');
     });
 
-    it('uses newClassName', function () {
+    it('uses brokenLinkClassName', function () {
       let html = micromark('[[A Page]]', {
         extensions: [internalLinkSyntax()],
         htmlExtensions: [
           internalLinkHtml({
-            newClassName: 'new_page',
+            brokenLinkClassName: 'new_page',
           }),
         ],
       });
 
-      expect(html).to.equal('<p><a href="#/page/a_page" class="internal new_page">A Page</a></p>');
+      expect(html).to.equal('<p><a href="page/a_page" class="internal new_page">A Page</a></p>');
     });
 
     it('uses hrefTemplate', function () {
@@ -141,7 +143,7 @@ describe('micromark-extension-wiki-link', function () {
         ],
       });
 
-      expect(html).to.equal('<p><a href="a_page" class="internal new">A Page</a></p>');
+      expect(html).to.equal('<p><a href="a_page" class="internal broken-link">A Page</a></p>');
     });
 
     it('uses wikiLinkClassName', function () {
@@ -155,7 +157,7 @@ describe('micromark-extension-wiki-link', function () {
         ],
       });
 
-      expect(html).to.equal('<p><a href="#/page/a_page" class="wiki_link">A Page</a></p>');
+      expect(html).to.equal('<p><a href="page/a_page" class="wiki_link">A Page</a></p>');
     });
   });
 
@@ -184,7 +186,7 @@ describe('micromark-extension-wiki-link', function () {
         </thead>
         <tbody>
         <tr>
-        <td><a href="#/page/wikilink" class="internal new">wikilink</a></td>
+        <td><a href="page/wikilink" class="internal broken-link">wikilink</a></td>
         <td>text</td>
         </tr>
         </tbody>
@@ -210,7 +212,7 @@ describe('micromark-extension-wiki-link', function () {
         </thead>
         <tbody>
         <tr>
-        <td><a href="#/page/wikilink" class="internal new">alias</a></td>
+        <td><a href="page/wikilink" class="internal broken-link">alias</a></td>
         <td>text</td>
         </tr>
         </tbody>

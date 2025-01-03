@@ -14,16 +14,16 @@ export interface WikiLinkConfig {
 export interface HtmlOptions {
   permalinks?: string[];
   pageResolver?: (name: string) => string[];
-  newClassName?: string;
+  brokenLinkClassName?: string;
   wikiLinkClassName?: string;
-  hrefTemplate?: (permalink: string) => string;
+  hrefTemplate?: (permalink: string, anchor: string | undefined) => string;
 }
 
 export interface HtmlConfig {
   permalinks: string[];
   pageResolver: (name: string) => string[];
-  newClassName: string;
+  brokenLinkClassName: string;
   wikiLinkClassName: string;
-  hrefTemplate: (permalink: string) => string;
+  hrefTemplate: (permalink: string, anchor: string | undefined) => string;
 }
 
