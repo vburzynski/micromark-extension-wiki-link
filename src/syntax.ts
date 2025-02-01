@@ -67,6 +67,7 @@ declare module 'micromark-util-types' {
 }
 
 // types of supported internal links...
+//
 // [[destination]]                     | targets a destination (a destination can take the forms below)
 //   [[filename]]                      |   shortest path destination
 //   [[./subfolder/filename]]          |   relative path destination targeting file inside subfolder
@@ -87,6 +88,18 @@ declare module 'micromark-util-types' {
 // [[destination#heading|alias]]       | aliased link targeting a heading in another document
 // [[#^block-id|alias]]                | aliased link targeting a block id in the current document
 // [[destination#^block-id|alias]]     | aliased link targeting a block id in another document
+//
+// types of supported embeds and transclusions...
+//
+// TODO: ![[destination]]              | transclude an entire note/page
+// TODO: ![[destination#anchor]]       | transclude everything under the header Anchor
+// TODO: ![[destination#^b15695]]      | transclude block with ID reference ^b15695
+// TODO: ![[imagepath.ext]]            | embed a file
+// TODO: ![[imagepath.jpg]]            | embed an image
+// TODO: ![[imagepath.jpg|100x145]]    | embed an image with dimensions (100px x 145px)
+// TODO: ![[imagepath.jpg|100]]        | embed an image setting the width to 100px
+// TODO: ![[imagepath.pdf#page=3]]     | embed pdf opened to specific page
+// TODO: ![[imagepath.pdf#height=400]] | embed pdf and set viewport height
 
 /**
  * Matches a carriage return, line feed, carriage return line feed, virtual space, end of file, or space character
@@ -356,8 +369,18 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
       return heading(code);
     }
 
+    /**
+     * ```markdown
+     * > | [[target#anchor#second|alias]]
+     * >            ^^^^^^
+     * ```
+     */
     function heading(code: Code): State | undefined {
-      // TODO: implement subheading support here...
+      // this is the start of a new heading chunk
+      if (code == codes.numberSign) {
+        effects.exit('wikiLinkHeading');
+        return anchor(code);
+      }
 
       // exit when code matches the first code of the alias divider
       if (atAliasDivider(code)) {

@@ -32,11 +32,34 @@ describe('internal link with anchor', function () {
     });
   });
 
-  // TODO: IMPLEMENT nested heading support
-  it.skip('handles nested headings on another page', function () {
+  it('handles a nested suheadings on the current page', function () {
+    serializationTest({
+      markdown: '[[#heading#subheading]]',
+      expected: '<p><a href="#heading-subheading" class="internal">heading > subheading</a></p>',
+      htmlOptions: { permalinks: ['title'] },
+    });
+  });
+
+  it('handles a nested suheadings on another page', function () {
     serializationTest({
       markdown: '[[title#heading#subheading]]',
-      expected: '<p><a href="page/title#subheading" class="internal">title > heading > subheading</a></p>',
+      expected: '<p><a href="page/title#heading-subheading" class="internal">title > heading > subheading</a></p>',
+      htmlOptions: { permalinks: ['title'] },
+    });
+  });
+
+  it('handles multiple nested headings on the current page', function () {
+    serializationTest({
+      markdown: '[[#h1#h2#h3#h4#h5#h6]]',
+      expected: '<p><a href="#h1-h2-h3-h4-h5-h6" class="internal">h1 > h2 > h3 > h4 > h5 > h6</a></p>',
+      htmlOptions: { permalinks: ['title'] },
+    });
+  });
+
+  it('handles multiple nested headings on another page', function () {
+    serializationTest({
+      markdown: '[[title#h1#h2#h3#h4#h5#h6]]',
+      expected: '<p><a href="page/title#h1-h2-h3-h4-h5-h6" class="internal">title > h1 > h2 > h3 > h4 > h5 > h6</a></p>',
       htmlOptions: { permalinks: ['title'] },
     });
   });

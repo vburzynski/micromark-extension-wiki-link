@@ -1,10 +1,13 @@
 import { CompileContext, HtmlExtension, Token } from "micromark-util-types";
 import { WikiLinkHtmlConfig, WikiLinkHtmlOptions } from "./types.js";
 
+interface WikiLinkAnchor {
+  value: string;
+  type: string;
+}
 interface WikiLink {
   target: string;
-  anchor?: string;
-  anchorType?: string;
+  anchors?: WikiLinkAnchor[];
   alias?: string;
 }
 
@@ -22,8 +25,14 @@ const defaultConfig: WikiLinkHtmlConfig = {
   permalinks: [],
   brokenLinkClassName: 'broken-link',
   wikiLinkClassName: 'internal',
+
+  // TODO: rename to destinationResolver or referenceResolver?
   pageResolver: (name: string) => [name.replace(/ /g, '_').toLowerCase()],
+
+  // TODO: implement me to get the actual HTML identifier assigned to a heading anchor or block reference anchor
   anchorResolver: (name: string) => [name.replace(/ /g, '_').toLowerCase()],
+
+  // TODO: rename to urlResolver or pathResolver?
   hrefTemplate: (permalink: string, anchor: string | undefined) => {
     if (permalink && anchor) return `page/${permalink}#${anchor}`;
     if (permalink) return `page/${permalink}`;
@@ -45,16 +54,18 @@ function internalLinkHtml(opts: WikiLinkHtmlOptions = {}): HtmlExtension {
     const anchor = this.sliceSerialize(token);
     const stack = this.getData('wikiLinkStack')
     const current = stack[stack.length - 1];
-    current.anchor = anchor;
-    current.anchorType = 'heading';
+
+    current.anchors ||= [];
+    current.anchors.push({ value: anchor, type: 'heading' });
   }
 
   function exitWikiLinkBlockId(this: CompileContext, token: Token): undefined {
     const blockId = this.sliceSerialize(token);
     const stack = this.getData('wikiLinkStack')
     const current = stack[stack.length - 1];
-    current.anchor = blockId;
-    current.anchorType = 'blockId';
+
+    current.anchors ||= [];
+    current.anchors.push({ value: blockId, type: 'blockId' });
   }
 
   function exitWikiLinkAlias(this: CompileContext, token: Token): undefined {
@@ -77,8 +88,8 @@ function internalLinkHtml(opts: WikiLinkHtmlOptions = {}): HtmlExtension {
 
     const [permalink, brokenLink] = getPermalink(wikiLink);
     const displayName: string = getDisplayName(wikiLink);
-    const anchor = wikiLink.anchor;
-    const href = config.hrefTemplate(permalink, anchor);
+    const anchors = wikiLink.anchors;
+    const href = config.hrefTemplate(permalink, anchors?.map((anchor) => anchor.value).join('-'));
 
     let classNames = [config.wikiLinkClassName];
     if (brokenLink) classNames.push(config.brokenLinkClassName);
@@ -114,16 +125,20 @@ function internalLinkHtml(opts: WikiLinkHtmlOptions = {}): HtmlExtension {
   // TODO: make this configurable
   function getDisplayName(wikiLink: WikiLink): string {
     if (wikiLink.alias) return wikiLink.alias;
-    if (wikiLink.anchor && wikiLink.target && wikiLink.anchorType === 'heading') {
-      return `${wikiLink.target} > ${wikiLink.anchor}`;
-    }
-    if (wikiLink.anchor && wikiLink.target && wikiLink.anchorType === 'blockId') {
-      return `${wikiLink.target} > ^${wikiLink.anchor}`;
-    }
-    if (wikiLink.anchor && wikiLink.anchorType === 'blockId') return `^${wikiLink.anchor}`;
-    if (wikiLink.anchor) return wikiLink.anchor;
+
+    let arr: string[] = [];
+
+    if (wikiLink.target) arr.push(wikiLink.target);
+    if (wikiLink.anchors) arr.push(...wikiLink.anchors.map(getAnchorDisplaySegment));
+    if (arr.length) return arr.join(' > ');
 
     return wikiLink.target!;
+  }
+
+  function getAnchorDisplaySegment(anchor: WikiLinkAnchor): string {
+    if (anchor.value && anchor.type === 'blockId') return `^${anchor.value}`;
+
+    return anchor.value;
   }
 
   return {

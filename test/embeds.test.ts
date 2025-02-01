@@ -6,6 +6,8 @@ describe('file embeds and transclusions', function () {
     serializationTest({
       markdown: '![[image.jpg]]',
       expected: '<p><a href="page/image.jpg" class="internal">image.jpg</a></p>',
+      // TODO: should render an IMG tag
+      // expected: '<img src="page/image.jpg" />'
       htmlOptions: { permalinks: ['image.jpg'] },
     })
   });
@@ -14,6 +16,8 @@ describe('file embeds and transclusions', function () {
     serializationTest({
       markdown: '![[image.jpg]]',
       expected: '<p><a href="page/image.jpg" class="internal broken-link">image.jpg</a></p>',
+      // TODO: should render an IMG tag
+      // expected: '<img src="page/image.jpg" />'
     })
   });
 });
