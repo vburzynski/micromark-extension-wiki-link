@@ -628,12 +628,14 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
     concrete: true,
   };
 
+  const wikiLinkTextConstructRecord : ConstructRecord = {
+    // internal links start with a square bracket
+    [codes.leftSquareBracket]: wikiLinkConstruct,
+    // embed links start with an exclamation mark
+    [codes.exclamationMark]: wikiLinkConstruct,
+  };
+
   return {
-    text: {
-      // internal links start with a square bracket
-      [codes.leftSquareBracket]: wikiLinkConstruct,
-      // embed links start with an exclamation mark
-      [codes.exclamationMark]: wikiLinkConstruct,
-    } as ConstructRecord,
+    text: wikiLinkTextConstructRecord,
   };
 }
