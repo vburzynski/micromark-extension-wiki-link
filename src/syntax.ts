@@ -12,7 +12,6 @@ import type {
 import { codes } from 'micromark-util-symbol';
 import { WikiLinkSyntaxConfig, WikiLinkSyntaxOptions } from './types.js';
 import { markdownLineEnding as atMarkdownLineEnding } from 'micromark-util-character';
-import { inspect } from 'node:util';
 
 /*
  * This internal link (wiki link) syntax tokenization aims to be compatible with Obsidian's implementation.
@@ -21,6 +20,8 @@ import { inspect } from 'node:util';
 
 declare module 'micromark-util-types' {
   interface TokenTypeMap {
+    wikiLinkEmbed: 'wikiLinkEmbed';
+
     // (required) encloses the entire wikilink
     wikiLink: 'wikiLink';
 
@@ -206,11 +207,11 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
      * ```
      */
     function startEmbed(code: Code) {
-      effects.enter('wikiLink', { embed: true });
-      effects.enter('wikiLinkFence', { embed: true });
+      effects.enter('wikiLinkEmbed');
       effects.consume(code);
+      effects.exit('wikiLinkEmbed');
 
-      return openingFence;
+      return startWikiLink
     }
 
     /**
@@ -582,8 +583,6 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
     function afterClosingFence(code: Code): State | undefined {
       effects.exit('wikiLinkFence');
       effects.exit('wikiLink');
-
-      console.log(inspect(self.events));
 
       return ok(code);
     }

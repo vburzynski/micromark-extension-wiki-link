@@ -13,9 +13,9 @@ export interface WikiLinkSyntaxConfig {
 
 export type PageDestinationResolver = (destination: string) => string[];
 
-export type PageAnchorResolver = (destination: string, heading: string) => string[];
+export type PageAnchorResolver = (destination: string, headings: string[]) => string;
 
-export type HrefTemplate = (permalink: string, anchor: string | undefined) => string;
+export type UrlResolver = (permalink?: string, anchor?: string) => string;
 
 export type WikiLinkHtmlOptions = Partial<WikiLinkHtmlConfig>
 
@@ -33,9 +33,9 @@ export interface WikiLinkHtmlConfig {
   pageResolver: PageDestinationResolver;
 
   // a callback that reolves a heading to an anchor
-  anchorResolver: PageAnchorResolver;
+  pageAnchorResolver: PageAnchorResolver;
 
   // a callback that renders the href URI/URL for a given link
-  hrefTemplate: HrefTemplate;
+  urlResolver: UrlResolver;
 }
 

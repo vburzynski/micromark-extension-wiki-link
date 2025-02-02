@@ -70,12 +70,12 @@ describe('html configuration options', function () {
     });
   });
 
-  it('accepts a replacement hrefTemplate', function () {
+  it('accepts a replacement urlResolver', function () {
     serializationTest({
       markdown: '[[A Page]]',
       expected: '<p><a href="a_page" class="internal broken-link">A Page</a></p>',
       htmlOptions: {
-        hrefTemplate: (permalink: string, _anchor: string | undefined) => permalink,
+        urlResolver: (permalink: string, _anchor: string | undefined) => permalink,
       },
     });
   });
