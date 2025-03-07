@@ -17,6 +17,69 @@
       ]
     },
     {
+      "name": "Attach by Process ID",
+      "processId": "${command:PickProcess}",
+      "request": "attach",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "node"
+    },
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Mocha
+    // -----------------------------------------------------------------------------------------------------------------
+    // https://github.com/Microsoft/vscode-recipes/tree/master/debugging-mocha-tests
+    {
+      "name": "Mocha All Tests",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+      "args": [
+        "--reporter",
+        "dot",
+        "--timeout",
+        "30000",
+        "--colors",
+        "--inspect",
+        "${workspaceFolder}/test/**/*.test.js",
+      ],
+      "stopOnEntry": false,
+      "internalConsoleOptions": "openOnSessionStart",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Mocha Current File",
+      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "--config",
+        ".mocharc.json",
+        "--timeout",
+        "30000",
+        "--colors",
+        "${file}",
+      ],
+      "internalConsoleOptions": "openOnSessionStart",
+      "skipFiles": ["<node_internals>/**"],
+    },
+    {
+      "name": "Mocha (Test single file)",
+      "type": "node",
+      "request": "launch",
+      "runtimeArgs": [
+        "${workspaceRoot}/node_modules/.bin/mocha",
+        "--inspect-brk",
+        "--require",
+        "tsx",
+        "${relativeFile}"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
       "args": [
         "--timeout",
         "999999",
@@ -27,9 +90,7 @@
       "name": "Mocha Tests",
       "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
       "request": "launch",
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
+      "skipFiles": ["<node_internals>/**"],
       "type": "node"
     },
     {
@@ -40,8 +101,6 @@
       "args": [
         "--require",
         "esm",
-        // "--require",
-        // "${workspaceFolder}/your-test-folder/your-setup.js",
         "--reporter",
         "dot",
         "--slow",
@@ -54,5 +113,6 @@
         "<node_internals>/**"
       ]
     },
+
   ]
 }

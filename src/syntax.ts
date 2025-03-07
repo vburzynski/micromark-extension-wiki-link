@@ -93,15 +93,15 @@ declare module 'micromark-util-types' {
 //
 // types of supported embeds and transclusions...
 //
-// TODO: ![[destination]]              | transclude an entire note/page
-// TODO: ![[destination#anchor]]       | transclude everything under the header Anchor
-// TODO: ![[destination#^b15695]]      | transclude block with ID reference ^b15695
-// TODO: ![[imagepath.ext]]            | embed a file
-// TODO: ![[imagepath.jpg]]            | embed an image
-// TODO: ![[imagepath.jpg|100x145]]    | embed an image with dimensions (100px x 145px)
-// TODO: ![[imagepath.jpg|100]]        | embed an image setting the width to 100px
-// TODO: ![[imagepath.pdf#page=3]]     | embed pdf opened to specific page
-// TODO: ![[imagepath.pdf#height=400]] | embed pdf and set viewport height
+// ![[destination]]              | transclude an entire note/page
+// ![[destination#anchor]]       | transclude everything under the header Anchor
+// ![[destination#^b15695]]      | transclude block with ID reference ^b15695
+// ![[imagepath.ext]]            | embed a file
+// ![[imagepath.jpg]]            | embed an image
+// ![[imagepath.jpg|100x145]]    | embed an image with dimensions (100px x 145px)
+// ![[imagepath.jpg|100]]        | embed an image setting the width to 100px
+// ![[imagepath.pdf#page=3]]     | embed pdf opened to specific page
+// ![[imagepath.pdf#height=400]] | embed pdf and set viewport height
 
 const blockIdentifierRegex: RegExp = /[-A-Za-z0-9]/;
 
@@ -293,8 +293,9 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
       if (atClosingFence(code)) return exitDestinationAndStartClosingFence(code);
       if (atMarkdownLineEnding(code) || atEndOfFile(code)) return nok(code);
 
-      if (atNonWhitespace(code)) containsTarget = true;
-
+      if (atNonWhitespace(code)) {
+        containsTarget = true;
+      }
       effects.consume(code);
 
       return destination;
@@ -335,6 +336,7 @@ export function internalLinkSyntax(options: WikiLinkSyntaxOptions = {}): Extensi
         effects.enter('wikiLinkAnchor');
         effects.consume(code);
         effects.exit('wikiLinkAnchor');
+
         return anchorFork;
       }
 
